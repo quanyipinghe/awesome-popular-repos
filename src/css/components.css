@@ -420,20 +420,20 @@
 /* ===== 收藏按钮 ===== */
 .favorite-btn {
   position: absolute;
-  top: var(--spacing-md);
-  right: var(--spacing-md);
-  width: 36px;
-  height: 36px;
+  top: var(--spacing-sm);
+  right: var(--spacing-sm);
+  width: 28px;
+  height: 28px;
   display: flex;
   align-items: center;
   justify-content: center;
-  background: var(--bg-tertiary);
+  background: transparent;
   border: none;
   border-radius: var(--radius-full);
   color: var(--text-muted);
   cursor: pointer;
   transition: all var(--transition-base);
-  z-index: 1;
+  z-index: 2;
 }
 
 .favorite-btn:hover {
@@ -443,7 +443,6 @@
 
 .favorite-btn.active {
   color: var(--accent-pink);
-  background: rgba(255, 64, 129, 0.2);
 }
 
 .favorite-btn.active svg {
