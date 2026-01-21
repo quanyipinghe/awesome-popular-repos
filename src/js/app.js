@@ -231,6 +231,11 @@ document.addEventListener('favoriteChanged', (e) => {
     isFavorite ? '已添加到收藏' : '已从收藏移除',
     isFavorite ? 'success' : 'info'
   );
+
+  // 如果当前处于"仅显示收藏"模式，刷新项目列表以反映收藏变化
+  if (state.filters.showFavorites) {
+    refreshProjects();
+  }
 });
 
 // 页面加载完成后初始化
