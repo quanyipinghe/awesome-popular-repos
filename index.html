@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="发现和收藏 GitHub 上最热门的开源项目，涵盖前端、后端、AI、DevOps 等多个领域">
+  <meta name="keywords" content="GitHub, 开源项目, 热门仓库, 前端框架, 编程资源">
+  <meta name="theme-color" content="#0a0a12">
+  
+  <title>Awesome Repos | GitHub 热门项目收藏展示平台</title>
+  
+  <!-- Favicon -->
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg">
+  
+  <!-- 预连接 Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  
+  <!-- 样式 -->
+  <link rel="stylesheet" href="/src/css/main.css">
+  <link rel="stylesheet" href="/src/css/components.css">
+</head>
+<body>
+  <!-- 导航栏 -->
+  <nav class="navbar" role="navigation" aria-label="主导航">
+    <div class="navbar-brand">
+      <span class="navbar-logo">⚡ AWESOME REPOS</span>
+    </div>
+    <div class="navbar-actions">
+      <a href="/admin.html" class="btn btn-outline" style="padding: 8px 16px; font-size: 12px;">
+        管理后台
+      </a>
+      <button class="theme-toggle" id="themeToggle" aria-label="切换主题">
+        🌙
+      </button>
+    </div>
+  </nav>
+
+  <!-- 主内容 -->
+  <main>
+    <!-- Hero 区域 -->
+    <section class="hero">
+      <h1 class="hero-title">
+        <span class="text-gradient">发现优秀开源项目</span>
+      </h1>
+      <p class="hero-subtitle">
+        精选 GitHub 最热门的开源项目，涵盖前端、后端、AI、DevOps 等多个领域。
+        一键收藏，随时查阅。
+      </p>
+      <div class="hero-stats">
+        <div class="hero-stat">
+          <div class="hero-stat-value" id="projectCount">--</div>
+          <div class="hero-stat-label">精选项目</div>
+        </div>
+        <div class="hero-stat">
+          <div class="hero-stat-value" id="languageCount">--</div>
+          <div class="hero-stat-label">编程语言</div>
+        </div>
+        <div class="hero-stat">
+          <div class="hero-stat-value" id="totalStars">--</div>
+          <div class="hero-stat-label">总星标数</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 搜索区域 (由 JS 动态生成) -->
+    <div id="searchContainer"></div>
+
+    <!-- 筛选区域 (由 JS 动态生成) -->
+    <div id="filterContainer"></div>
+
+    <!-- 项目列表 -->
+    <section class="projects-section">
+      <div class="projects-grid" id="projectsGrid">
+        <!-- 项目卡片由 JS 动态生成 -->
+        <div class="loading">
+          <div class="loading-spinner"></div>
+          <p style="margin-top: 16px;">加载中...</p>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <!-- 页脚 -->
+  <footer class="footer">
+    <p class="footer-text">
+      Made with ❤️ by 
+      <a href="https://github.com" class="footer-link" target="_blank" rel="noopener">GitHub</a> 
+      爱好者 | 
+      <a href="/admin.html" class="footer-link">管理后台</a>
+    </p>
+  </footer>
+
+  <!-- Toast 通知容器 -->
+  <div class="toast-container" id="toastContainer"></div>
+
+  <!-- 主脚本 -->
+  <script type="module" src="/src/js/app.js"></script>
+</body>
+</html>

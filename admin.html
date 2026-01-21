@@ -1,0 +1,314 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="robots" content="noindex, nofollow">
+  
+  <title>管理后台 | Awesome Repos</title>
+  
+  <!-- Favicon -->
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg">
+  
+  <!-- 预连接 Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  
+  <!-- 样式 -->
+  <link rel="stylesheet" href="/src/css/main.css">
+  <link rel="stylesheet" href="/src/css/components.css">
+  <link rel="stylesheet" href="/src/css/admin.css">
+</head>
+<body>
+  <!-- 登录页面 -->
+  <div class="login-container" id="loginPage">
+    <div class="login-card">
+      <h1 class="login-title">
+        <span class="text-gradient">🔐 管理后台</span>
+      </h1>
+      <div class="login-error" id="loginError">密码错误，请重试</div>
+      <form id="loginForm">
+        <div class="form-group">
+          <label class="form-label" for="password">管理密码</label>
+          <input 
+            type="password" 
+            id="password" 
+            class="form-input" 
+            placeholder="请输入管理密码"
+            autocomplete="current-password"
+            required
+          />
+        </div>
+        <button type="submit" class="btn btn-primary" style="width: 100%;">
+          登录
+        </button>
+      </form>
+      <p style="margin-top: var(--spacing-lg); text-align: center; color: var(--text-muted); font-size: var(--font-size-sm);">
+        默认密码: admin123
+      </p>
+    </div>
+  </div>
+
+  <!-- 管理界面 (登录后显示) -->
+  <div class="admin-layout" id="adminPage" style="display: none;">
+    <!-- 侧边栏 -->
+    <aside class="sidebar">
+      <div class="sidebar-header">
+        <a href="/" class="sidebar-logo">⚡ AWESOME</a>
+      </div>
+      <nav class="sidebar-nav">
+        <div class="nav-item active" data-page="dashboard">
+          <span class="nav-item-icon">📊</span>
+          <span>数据概览</span>
+        </div>
+        <div class="nav-item" data-page="projects">
+          <span class="nav-item-icon">📁</span>
+          <span>项目管理</span>
+        </div>
+        <div class="nav-item" data-page="import">
+          <span class="nav-item-icon">📥</span>
+          <span>批量导入</span>
+        </div>
+        <div class="nav-item" data-page="categories">
+          <span class="nav-item-icon">🏷️</span>
+          <span>分类管理</span>
+        </div>
+        <div class="nav-item" data-page="settings">
+          <span class="nav-item-icon">⚙️</span>
+          <span>系统设置</span>
+        </div>
+      </nav>
+      <div class="sidebar-footer">
+        <a href="/" class="btn btn-outline" style="width: 100%; font-size: 12px;">
+          返回前台
+        </a>
+      </div>
+    </aside>
+
+    <!-- 主内容区 -->
+    <main class="main-content">
+      <!-- 数据概览页 -->
+      <div class="page-content" id="pageDashboard">
+        <div class="page-header">
+          <h1 class="page-title">📊 数据概览</h1>
+        </div>
+        
+        <div class="stats-grid">
+          <div class="stat-card">
+            <div class="stat-icon">📁</div>
+            <div class="stat-value" id="statProjects">0</div>
+            <div class="stat-label">项目总数</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-icon">⭐</div>
+            <div class="stat-value" id="statStars">0</div>
+            <div class="stat-label">总星标数</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-icon">💻</div>
+            <div class="stat-value" id="statLanguages">0</div>
+            <div class="stat-label">编程语言</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-icon">🏷️</div>
+            <div class="stat-value" id="statCategories">0</div>
+            <div class="stat-label">分类数量</div>
+          </div>
+        </div>
+
+        <!-- 最近项目 -->
+        <h2 style="margin-bottom: var(--spacing-lg);">最近添加的项目</h2>
+        <div class="data-table-container">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>项目名称</th>
+                <th>所有者</th>
+                <th>语言</th>
+                <th>星标</th>
+                <th>更新时间</th>
+              </tr>
+            </thead>
+            <tbody id="recentProjectsTable">
+              <!-- 由 JS 动态生成 -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- 项目管理页 -->
+      <div class="page-content" id="pageProjects" style="display: none;">
+        <div class="page-header">
+          <h1 class="page-title">📁 项目管理</h1>
+          <button class="btn btn-primary" id="addProjectBtn">+ 添加项目</button>
+        </div>
+        
+        <div class="data-table-container">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>项目名称</th>
+                <th>所有者</th>
+                <th>语言</th>
+                <th>分类</th>
+                <th>星标</th>
+                <th>操作</th>
+              </tr>
+            </thead>
+            <tbody id="projectsTable">
+              <!-- 由 JS 动态生成 -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- 批量导入页 -->
+      <div class="page-content" id="pageImport" style="display: none;">
+        <div class="page-header">
+          <h1 class="page-title">📥 批量导入</h1>
+        </div>
+        
+        <div class="import-section">
+          <h3 style="margin-bottom: var(--spacing-sm);">从 GitHub URL 导入</h3>
+          <p style="color: var(--text-muted); font-size: var(--font-size-sm);">
+            每行输入一个 GitHub 仓库 URL，系统将自动获取项目信息
+          </p>
+          <textarea 
+            class="form-input import-textarea" 
+            id="importUrls"
+            placeholder="https://github.com/vuejs/vue&#10;https://github.com/facebook/react&#10;https://github.com/tensorflow/tensorflow"
+          ></textarea>
+          <div style="margin-top: var(--spacing-lg);">
+            <button class="btn btn-primary" id="startImportBtn">开始导入</button>
+          </div>
+          <div class="import-progress" id="importProgress" style="display: none;"></div>
+        </div>
+      </div>
+
+      <!-- 分类管理页 -->
+      <div class="page-content" id="pageCategories" style="display: none;">
+        <div class="page-header">
+          <h1 class="page-title">🏷️ 分类管理</h1>
+          <button class="btn btn-primary" id="addCategoryBtn">+ 添加分类</button>
+        </div>
+        
+        <div class="data-table-container">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>分类名称</th>
+                <th>Slug</th>
+                <th>描述</th>
+                <th>项目数</th>
+                <th>操作</th>
+              </tr>
+            </thead>
+            <tbody id="categoriesTable">
+              <!-- 由 JS 动态生成 -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- 系统设置页 -->
+      <div class="page-content" id="pageSettings" style="display: none;">
+        <div class="page-header">
+          <h1 class="page-title">⚙️ 系统设置</h1>
+        </div>
+        
+        <div style="max-width: 600px;">
+          <div class="form-group">
+            <label class="form-label">修改管理密码</label>
+            <input type="password" class="form-input" id="newPassword" placeholder="新密码">
+          </div>
+          <div class="form-group">
+            <label class="form-label">确认新密码</label>
+            <input type="password" class="form-input" id="confirmPassword" placeholder="确认新密码">
+          </div>
+          <button class="btn btn-primary" id="changePasswordBtn">修改密码</button>
+          
+          <hr style="margin: var(--spacing-2xl) 0; border-color: var(--border-color);">
+          
+          <h3 style="margin-bottom: var(--spacing-lg);">数据管理</h3>
+          <div style="display: flex; gap: var(--spacing-md);">
+            <button class="btn btn-outline" id="exportDataBtn">📤 导出数据</button>
+            <button class="btn btn-outline" id="importDataBtn">📥 导入数据</button>
+            <button class="btn btn-outline" id="resetDataBtn" style="border-color: var(--accent-pink); color: var(--accent-pink);">
+              🗑️ 重置数据
+            </button>
+          </div>
+          <input type="file" id="importDataFile" accept=".json" style="display: none;">
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <!-- 模态框 -->
+  <div class="modal-overlay" id="projectModal">
+    <div class="modal">
+      <div class="modal-header">
+        <h3 class="modal-title" id="modalTitle">添加项目</h3>
+        <button class="modal-close" id="modalClose">&times;</button>
+      </div>
+      <div class="modal-body">
+        <form id="projectForm">
+          <input type="hidden" id="editProjectId">
+          <div class="form-group">
+            <label class="form-label">GitHub URL</label>
+            <div style="display: flex; gap: var(--spacing-sm);">
+              <input type="url" class="form-input" id="projectUrl" placeholder="https://github.com/owner/repo">
+              <button type="button" class="btn btn-outline" id="fetchInfoBtn">获取信息</button>
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label">项目名称 *</label>
+              <input type="text" class="form-input" id="projectName" required>
+            </div>
+            <div class="form-group">
+              <label class="form-label">所有者 *</label>
+              <input type="text" class="form-input" id="projectOwner" required>
+            </div>
+          </div>
+          <div class="form-group">
+            <label class="form-label">描述</label>
+            <textarea class="form-input form-textarea" id="projectDescription"></textarea>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label">语言</label>
+              <input type="text" class="form-input" id="projectLanguage" placeholder="JavaScript">
+            </div>
+            <div class="form-group">
+              <label class="form-label">星标数</label>
+              <input type="number" class="form-input" id="projectStars" placeholder="0">
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label">分类</label>
+              <select class="form-input" id="projectCategory">
+                <!-- 由 JS 动态生成 -->
+              </select>
+            </div>
+            <div class="form-group">
+              <label class="form-label">标签 (逗号分隔)</label>
+              <input type="text" class="form-input" id="projectTags" placeholder="frontend, react, ui">
+            </div>
+          </div>
+        </form>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-outline" id="modalCancel">取消</button>
+        <button class="btn btn-primary" id="modalSave">保存</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast 通知容器 -->
+  <div class="toast-container" id="toastContainer"></div>
+
+  <!-- 主脚本 -->
+  <script type="module" src="/src/js/admin.js"></script>
+</body>
+</html>

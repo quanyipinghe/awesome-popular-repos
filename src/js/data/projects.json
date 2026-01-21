@@ -1,0 +1,277 @@
+{
+  "projects": [
+    {
+      "id": "1",
+      "name": "vue",
+      "owner": "vuejs",
+      "description": "🖖 一个用于构建用户界面的渐进式 JavaScript 框架，易于上手，性能出色，适用于各种规模的项目。",
+      "github_url": "https://github.com/vuejs/vue",
+      "stars": 208500,
+      "language": "JavaScript",
+      "category": "framework",
+      "tags": [
+        "frontend",
+        "reactive",
+        "framework"
+      ],
+      "created_at": "2024-01-01",
+      "updated_at": "2025-01-15"
+    },
+    {
+      "id": "2",
+      "name": "react",
+      "owner": "facebook",
+      "description": "一个用于构建用户界面的声明式、高效且灵活的 JavaScript 库。",
+      "github_url": "https://github.com/facebook/react",
+      "stars": 228000,
+      "language": "JavaScript",
+      "category": "framework",
+      "tags": [
+        "frontend",
+        "ui",
+        "library"
+      ],
+      "created_at": "2024-01-01",
+      "updated_at": "2025-01-20"
+    },
+    {
+      "id": "3",
+      "name": "tensorflow",
+      "owner": "tensorflow",
+      "description": "一个端到端的开源机器学习平台，拥有全面的工具、库和社区资源。",
+      "github_url": "https://github.com/tensorflow/tensorflow",
+      "stars": 186000,
+      "language": "Python",
+      "category": "tool",
+      "tags": [
+        "ai",
+        "ml",
+        "deep-learning"
+      ],
+      "created_at": "2024-01-01",
+      "updated_at": "2025-01-18"
+    },
+    {
+      "id": "4",
+      "name": "vscode",
+      "owner": "microsoft",
+      "description": "Visual Studio Code - 一款轻量但功能强大的源代码编辑器，支持多种语言和调试工具。",
+      "github_url": "https://github.com/microsoft/vscode",
+      "stars": 165000,
+      "language": "TypeScript",
+      "category": "tool",
+      "tags": [
+        "editor",
+        "ide",
+        "productivity"
+      ],
+      "created_at": "2024-01-01",
+      "updated_at": "2025-01-19"
+    },
+    {
+      "id": "5",
+      "name": "next.js",
+      "owner": "vercel",
+      "description": "React 全栈框架，支持服务端渲染、静态生成和 API 路由，是生产级应用的最佳选择。",
+      "github_url": "https://github.com/vercel/next.js",
+      "stars": 128000,
+      "language": "JavaScript",
+      "category": "framework",
+      "tags": [
+        "frontend",
+        "ssr",
+        "react"
+      ],
+      "created_at": "2024-01-01",
+      "updated_at": "2025-01-20"
+    },
+    {
+      "id": "6",
+      "name": "rust",
+      "owner": "rust-lang",
+      "description": "Rust 编程语言 - 赋予每个人构建可靠、高效软件的能力。内存安全且性能卓越。",
+      "github_url": "https://github.com/rust-lang/rust",
+      "stars": 99000,
+      "language": "Rust",
+      "category": "language",
+      "tags": [
+        "systems",
+        "performance",
+        "safety"
+      ],
+      "created_at": "2024-01-01",
+      "updated_at": "2025-01-17"
+    },
+    {
+      "id": "7",
+      "name": "go",
+      "owner": "golang",
+      "description": "Go 编程语言 - 简洁、快速、可靠。专为并发和网络编程设计。",
+      "github_url": "https://github.com/golang/go",
+      "stars": 125000,
+      "language": "Go",
+      "category": "language",
+      "tags": [
+        "systems",
+        "backend",
+        "concurrency"
+      ],
+      "created_at": "2024-01-01",
+      "updated_at": "2025-01-16"
+    },
+    {
+      "id": "8",
+      "name": "deno",
+      "owner": "denoland",
+      "description": "一个现代的 JavaScript 和 TypeScript 运行时，默认安全、支持 TypeScript、内置工具链。",
+      "github_url": "https://github.com/denoland/deno",
+      "stars": 98000,
+      "language": "Rust",
+      "category": "runtime",
+      "tags": [
+        "runtime",
+        "typescript",
+        "secure"
+      ],
+      "created_at": "2024-01-01",
+      "updated_at": "2025-01-15"
+    },
+    {
+      "id": "9",
+      "name": "pytorch",
+      "owner": "pytorch",
+      "description": "深度学习框架，提供最大的灵活性和速度。从研究到生产的完美解决方案。",
+      "github_url": "https://github.com/pytorch/pytorch",
+      "stars": 84000,
+      "language": "Python",
+      "category": "tool",
+      "tags": [
+        "ai",
+        "ml",
+        "deep-learning"
+      ],
+      "created_at": "2024-01-01",
+      "updated_at": "2025-01-19"
+    },
+    {
+      "id": "10",
+      "name": "kubernetes",
+      "owner": "kubernetes",
+      "description": "生产级容器编排系统，用于自动化容器化应用程序的部署、扩展和管理。",
+      "github_url": "https://github.com/kubernetes/kubernetes",
+      "stars": 112000,
+      "language": "Go",
+      "category": "tool",
+      "tags": [
+        "devops",
+        "container",
+        "orchestration"
+      ],
+      "created_at": "2024-01-01",
+      "updated_at": "2025-01-18"
+    },
+    {
+      "id": "11",
+      "name": "tailwindcss",
+      "owner": "tailwindlabs",
+      "description": "一个实用优先的 CSS 框架，用于快速构建自定义设计，无需离开 HTML。",
+      "github_url": "https://github.com/tailwindlabs/tailwindcss",
+      "stars": 85000,
+      "language": "JavaScript",
+      "category": "framework",
+      "tags": [
+        "css",
+        "frontend",
+        "utility"
+      ],
+      "created_at": "2024-01-01",
+      "updated_at": "2025-01-20"
+    },
+    {
+      "id": "12",
+      "name": "langchain",
+      "owner": "langchain-ai",
+      "description": "构建 LLM 应用程序的框架 - 将语言模型与其他数据源和计算能力连接起来。",
+      "github_url": "https://github.com/langchain-ai/langchain",
+      "stars": 98000,
+      "language": "Python",
+      "category": "tool",
+      "tags": [
+        "ai",
+        "llm",
+        "chain"
+      ],
+      "created_at": "2024-01-01",
+      "updated_at": "2025-01-21"
+    }
+  ],
+  "categories": [
+    {
+      "id": "framework",
+      "name": "框架",
+      "slug": "framework",
+      "description": "Web 和应用开发框架"
+    },
+    {
+      "id": "tool",
+      "name": "工具",
+      "slug": "tool",
+      "description": "开发工具和实用程序"
+    },
+    {
+      "id": "library",
+      "name": "库",
+      "slug": "library",
+      "description": "可复用的代码库"
+    },
+    {
+      "id": "language",
+      "name": "语言",
+      "slug": "language",
+      "description": "编程语言"
+    },
+    {
+      "id": "runtime",
+      "name": "运行时",
+      "slug": "runtime",
+      "description": "程序运行环境"
+    },
+    {
+      "id": "learning",
+      "name": "学习资源",
+      "slug": "learning",
+      "description": "教程和学习材料"
+    }
+  ],
+  "tags": [
+    "frontend",
+    "backend",
+    "ai",
+    "ml",
+    "deep-learning",
+    "framework",
+    "library",
+    "tool",
+    "devops",
+    "container",
+    "performance",
+    "typescript",
+    "react",
+    "vue",
+    "systems",
+    "concurrency",
+    "ssr",
+    "ui",
+    "css",
+    "utility",
+    "llm",
+    "chain",
+    "editor",
+    "ide",
+    "productivity",
+    "runtime",
+    "secure",
+    "safety",
+    "orchestration"
+  ]
+}
