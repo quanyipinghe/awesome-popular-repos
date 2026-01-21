@@ -4,13 +4,14 @@
 
 ![GitHub](https://img.shields.io/badge/GitHub-Projects-181717?style=for-the-badge&logo=github)
 ![Vite](https://img.shields.io/badge/Vite-6.0-646CFF?style=for-the-badge&logo=vite)
+![Cloudflare](https://img.shields.io/badge/Cloudflare-Pages-F38020?style=for-the-badge&logo=cloudflare)
 ![JavaScript](https://img.shields.io/badge/JavaScript-ES6+-F7DF1E?style=for-the-badge&logo=javascript&logoColor=black)
 
 **🚀 GitHub 热门项目收藏展示平台**
 
 *发现、收藏和管理最优秀的开源项目*
 
-[在线演示](#) · [功能介绍](#-功能特性) · [快速开始](#-快速开始) · [项目结构](#-项目结构)
+[在线演示](#) · [功能介绍](#-功能特性) · [快速开始](#-快速开始) · [部署指南](#-cloudflare-部署)
 
 </div>
 
@@ -31,7 +32,8 @@
 - **批量导入** - 从 GitHub URL 自动获取项目信息
 - **分类管理** - 灵活的项目分类体系
 - **数据备份** - 支持数据导出/导入
-- **访问控制** - 密码保护的管理后台
+- **访问控制** - 用户名密码保护的管理后台
+- **云端同步** - 数据自动同步到 Cloudflare D1
 
 ---
 
@@ -43,7 +45,9 @@
 | **前端框架** | 原生 JavaScript (ES6+) |
 | **样式** | 原生 CSS + CSS 变量 |
 | **字体** | Orbitron + Space Mono |
-| **数据存储** | localStorage + JSON |
+| **数据存储** | Cloudflare D1 (SQLite) + localStorage 缓存 |
+| **后端** | Cloudflare Pages Functions |
+| **部署** | Cloudflare Pages |
 | **API 集成** | GitHub REST API |
 
 ---
@@ -54,7 +58,7 @@
 - Node.js >= 18.0
 - npm >= 9.0
 
-### 安装步骤
+### 本地开发
 
 ```bash
 # 克隆仓库
@@ -72,17 +76,68 @@ npm run dev
 
 访问 [http://localhost:3000](http://localhost:3000) 查看前台
 
-访问 [http://localhost:3000/admin.html](http://localhost:3000/admin.html) 进入后台（默认密码：`admin123`）
+访问 [http://localhost:3000/admin.html](http://localhost:3000/admin.html) 进入后台
 
-### 构建生产版本
+> 本地开发时使用默认账号：用户名 `admin`，密码 `admin123`
+
+### 本地测试 Cloudflare Functions
 
 ```bash
-# 构建
-npm run build
-
-# 预览构建结果
-npm run preview
+# 构建并启动本地 Pages 开发服务器
+npm run pages:dev
 ```
+
+---
+
+## ☁️ Cloudflare 部署
+
+### 1. 创建 D1 数据库
+
+```bash
+# 登录 Cloudflare
+npx wrangler login
+
+# 创建 D1 数据库
+npm run db:create
+```
+
+记下返回的 `database_id`，更新 `wrangler.toml` 中的 `database_id`。
+
+### 2. 初始化数据库表
+
+```bash
+# 初始化数据库 schema
+npm run db:init
+```
+
+### 3. 配置环境变量
+
+在 [Cloudflare Dashboard](https://dash.cloudflare.com/) 中配置 Pages 项目的环境变量：
+
+| 变量名 | 说明 | 示例值 |
+|--------|------|--------|
+| `ADMIN_USERNAME` | 管理员用户名 | `admin` |
+| `ADMIN_PASSWORD` | 管理员密码 | `your_secure_password` |
+
+**设置步骤：**
+1. 进入 Cloudflare Dashboard
+2. 选择 Pages 项目
+3. 点击 Settings > Environment variables
+4. 添加上述环境变量（Production 和 Preview 环境都需要配置）
+
+### 4. 部署到 Cloudflare Pages
+
+```bash
+# 构建并部署
+npm run pages:deploy
+```
+
+或通过 Git 集成自动部署：
+1. 将代码推送到 GitHub
+2. 在 Cloudflare Pages 中连接 GitHub 仓库
+3. 配置构建命令：`npm run build`
+4. 配置输出目录：`dist`
+5. 添加 D1 绑定：绑定名 `DB`，数据库 `awesome-repos-db`
 
 ---
 
@@ -94,7 +149,15 @@ awesome-popular-repos/
 ├── admin.html                 # 后台管理页
 ├── package.json               # 项目配置
 ├── vite.config.js             # Vite 配置（多页面）
-├── prd.md                     # 产品需求文档
+├── wrangler.toml              # Cloudflare 配置
+├── schema.sql                 # D1 数据库 Schema
+├── functions/                 # Cloudflare Pages Functions
+│   ├── _middleware.js         # CORS 和认证中间件
+│   └── api/
+│       ├── auth.js            # 认证 API
+│       ├── projects.js        # 项目 CRUD API
+│       ├── categories.js      # 分类 API
+│       └── sync.js            # 数据同步 API
 ├── public/
 │   └── favicon.svg            # 网站图标
 └── src/
@@ -132,12 +195,28 @@ awesome-popular-repos/
 
 ### 后台管理
 
-1. **登录** - 使用密码登录后台（默认：`admin123`）
+1. **登录** - 使用管理员用户名和密码登录
 2. **添加项目** - 点击「添加项目」，输入 GitHub URL 可自动获取信息
 3. **编辑项目** - 在项目列表点击 ✏️ 编辑按钮
 4. **删除项目** - 在项目列表点击 🗑️ 删除按钮
 5. **批量导入** - 在「批量导入」页面粘贴多个 GitHub URL（每行一个）
 6. **数据备份** - 在「系统设置」导出/导入 JSON 数据
+7. **云端同步** - 点击「同步到云端」将本地数据同步到 D1
+
+---
+
+## 🔐 API 端点
+
+| 方法 | 端点 | 说明 | 认证 |
+|------|------|------|------|
+| POST | `/api/auth` | 登录认证 | ❌ |
+| GET | `/api/projects` | 获取所有项目 | ❌ |
+| POST | `/api/projects` | 添加项目 | ✅ |
+| PUT | `/api/projects` | 更新项目 | ✅ |
+| DELETE | `/api/projects?id=xxx` | 删除项目 | ✅ |
+| GET | `/api/categories` | 获取所有分类 | ❌ |
+| POST | `/api/categories` | 添加分类 | ✅ |
+| POST | `/api/sync` | 批量同步数据 | ✅ |
 
 ---
 
@@ -161,9 +240,9 @@ awesome-popular-repos/
 
 ## 🔮 后续规划
 
-- [ ] Cloudflare Pages 部署
-- [ ] Cloudflare D1 数据库迁移
-- [ ] GitHub OAuth 登录
+- [x] Cloudflare Pages 部署
+- [x] Cloudflare D1 数据库迁移
+- [x] 密码认证登录
 - [ ] PWA 离线支持
 - [ ] RSS 订阅功能
 - [ ] 项目趋势分析

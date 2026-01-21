@@ -1,6 +1,7 @@
 /**
  * 后台管理系统入口
  * 处理登录、项目管理、批量导入等功能
+ * 支持 Cloudflare D1 数据库存储
  */
 
 import {
@@ -24,9 +25,173 @@ import { getRepoInfoFromUrl, batchGetRepoInfo, formatStars } from './utils/githu
 // 导入默认数据
 import defaultData from './data/projects.json';
 
-// 默认管理密码
-const DEFAULT_PASSWORD = 'admin123';
-const PASSWORD_KEY = 'awesome_repos_admin_password';
+// API 基础路径
+const API_BASE = '/api';
+
+// 认证 Token 存储键
+const AUTH_TOKEN_KEY = 'awesome_repos_auth_token';
+
+// ===== API 辅助函数 =====
+
+/**
+ * 获取认证 Token
+ */
+function getAuthToken() {
+  return sessionStorage.getItem(AUTH_TOKEN_KEY);
+}
+
+/**
+ * 设置认证 Token
+ */
+function setAuthToken(token) {
+  sessionStorage.setItem(AUTH_TOKEN_KEY, token);
+}
+
+/**
+ * 清除认证 Token
+ */
+function clearAuthToken() {
+  sessionStorage.removeItem(AUTH_TOKEN_KEY);
+}
+
+/**
+ * 发起 API 请求
+ */
+async function apiRequest(endpoint, options = {}) {
+  const token = getAuthToken();
+  const headers = {
+    'Content-Type': 'application/json',
+    ...options.headers,
+  };
+
+  if (token) {
+    headers['Authorization'] = `Basic ${token}`;
+  }
+
+  const response = await fetch(`${API_BASE}${endpoint}`, {
+    ...options,
+    headers,
+  });
+
+  return response.json();
+}
+
+/**
+ * 从 API 获取项目列表
+ */
+async function fetchProjectsFromApi() {
+  try {
+    const result = await apiRequest('/projects');
+    if (result.projects) {
+      // 更新本地缓存
+      setProjects(result.projects);
+      return result.projects;
+    }
+  } catch (error) {
+    console.warn('[Admin] API 请求失败，使用本地数据:', error);
+  }
+  return getProjects();
+}
+
+/**
+ * 从 API 获取分类列表
+ */
+async function fetchCategoriesFromApi() {
+  try {
+    const result = await apiRequest('/categories');
+    if (result.categories) {
+      // 更新本地缓存
+      setCategories(result.categories);
+      return result.categories;
+    }
+  } catch (error) {
+    console.warn('[Admin] API 请求失败，使用本地数据:', error);
+  }
+  return getCategories();
+}
+
+/**
+ * 添加项目到 API
+ */
+async function addProjectToApi(projectData) {
+  try {
+    const result = await apiRequest('/projects', {
+      method: 'POST',
+      body: JSON.stringify(projectData),
+    });
+    if (result.success) {
+      // 同步到本地
+      addProject(result.project || projectData);
+      return result;
+    }
+    return result;
+  } catch (error) {
+    console.warn('[Admin] API 请求失败，使用本地存储:', error);
+    addProject(projectData);
+    return { success: true, local: true };
+  }
+}
+
+/**
+ * 更新项目到 API
+ */
+async function updateProjectToApi(id, updates) {
+  try {
+    const result = await apiRequest('/projects', {
+      method: 'PUT',
+      body: JSON.stringify({ id, ...updates }),
+    });
+    if (result.success) {
+      updateProject(id, updates);
+      return result;
+    }
+    return result;
+  } catch (error) {
+    console.warn('[Admin] API 请求失败，使用本地存储:', error);
+    updateProject(id, updates);
+    return { success: true, local: true };
+  }
+}
+
+/**
+ * 从 API 删除项目
+ */
+async function deleteProjectFromApi(id) {
+  try {
+    const result = await apiRequest(`/projects?id=${id}`, {
+      method: 'DELETE',
+    });
+    if (result.success) {
+      deleteProject(id);
+      return result;
+    }
+    return result;
+  } catch (error) {
+    console.warn('[Admin] API 请求失败，使用本地存储:', error);
+    deleteProject(id);
+    return { success: true, local: true };
+  }
+}
+
+/**
+ * 同步数据到 D1
+ */
+async function syncDataToD1() {
+  try {
+    const data = exportAllData();
+    const result = await apiRequest('/sync', {
+      method: 'POST',
+      body: JSON.stringify({
+        projects: data.projects,
+        categories: data.categories,
+      }),
+    });
+    return result;
+  } catch (error) {
+    console.error('[Admin] 同步数据失败:', error);
+    return { success: false, error: error.message };
+  }
+}
 
 // ===== 登录相关 =====
 
@@ -34,8 +199,8 @@ const PASSWORD_KEY = 'awesome_repos_admin_password';
  * 检查是否已登录
  */
 function checkAuth() {
-  const isLoggedIn = sessionStorage.getItem('admin_logged_in');
-  return isLoggedIn === 'true';
+  const token = getAuthToken();
+  return !!token;
 }
 
 /**
@@ -58,19 +223,51 @@ function showAdminPage() {
 /**
  * 处理登录
  */
-function handleLogin(e) {
+async function handleLogin(e) {
   e.preventDefault();
-  const password = document.getElementById('password').value;
-  const storedPassword = localStorage.getItem(PASSWORD_KEY) || DEFAULT_PASSWORD;
 
-  if (password === storedPassword) {
-    sessionStorage.setItem('admin_logged_in', 'true');
-    showAdminPage();
-  } else {
-    document.getElementById('loginError').classList.add('show');
-    setTimeout(() => {
-      document.getElementById('loginError').classList.remove('show');
-    }, 3000);
+  const username = document.getElementById('username').value;
+  const password = document.getElementById('password').value;
+  const loginBtn = e.target.querySelector('button[type="submit"]');
+  const errorEl = document.getElementById('loginError');
+
+  // 禁用按钮，显示加载状态
+  loginBtn.disabled = true;
+  loginBtn.textContent = '登录中...';
+
+  try {
+    // 调用认证 API
+    const result = await apiRequest('/auth', {
+      method: 'POST',
+      body: JSON.stringify({ username, password }),
+    });
+
+    if (result.success && result.token) {
+      setAuthToken(result.token);
+      showAdminPage();
+    } else {
+      errorEl.classList.add('show');
+      setTimeout(() => {
+        errorEl.classList.remove('show');
+      }, 3000);
+    }
+  } catch (error) {
+    console.error('[Admin] 登录请求失败:', error);
+    // 如果 API 不可用（本地开发），尝试本地验证
+    const localCredentials = btoa(`${username}:${password}`);
+    // 默认本地密码验证（仅开发用）
+    if (username === 'admin' && password === 'admin123') {
+      setAuthToken(localCredentials);
+      showAdminPage();
+    } else {
+      errorEl.classList.add('show');
+      setTimeout(() => {
+        errorEl.classList.remove('show');
+      }, 3000);
+    }
+  } finally {
+    loginBtn.disabled = false;
+    loginBtn.textContent = '登录';
   }
 }
 
@@ -84,16 +281,16 @@ async function initAdminPage() {
   await initStorage(defaultData);
 
   // 加载统计数据
-  loadDashboardStats();
+  await loadDashboardStats();
 
   // 加载最近项目
-  loadRecentProjects();
+  await loadRecentProjects();
 
   // 加载项目表格
-  loadProjectsTable();
+  await loadProjectsTable();
 
   // 加载分类表格
-  loadCategoriesTable();
+  await loadCategoriesTable();
 
   // 绑定事件
   bindNavigationEvents();
@@ -105,9 +302,9 @@ async function initAdminPage() {
 /**
  * 加载仪表盘统计数据
  */
-function loadDashboardStats() {
-  const projects = getProjects();
-  const categories = getCategories();
+async function loadDashboardStats() {
+  const projects = await fetchProjectsFromApi();
+  const categories = await fetchCategoriesFromApi();
 
   // 项目总数
   document.getElementById('statProjects').textContent = projects.length;
@@ -127,8 +324,8 @@ function loadDashboardStats() {
 /**
  * 加载最近项目
  */
-function loadRecentProjects() {
-  const projects = getProjects()
+async function loadRecentProjects() {
+  const projects = (await fetchProjectsFromApi())
     .sort((a, b) => new Date(b.updated_at) - new Date(a.updated_at))
     .slice(0, 5);
 
@@ -147,9 +344,9 @@ function loadRecentProjects() {
 /**
  * 加载项目表格
  */
-function loadProjectsTable() {
-  const projects = getProjects();
-  const categories = getCategories();
+async function loadProjectsTable() {
+  const projects = await fetchProjectsFromApi();
+  const categories = await fetchCategoriesFromApi();
 
   const tbody = document.getElementById('projectsTable');
   tbody.innerHTML = projects.map(p => {
@@ -180,9 +377,9 @@ function loadProjectsTable() {
 /**
  * 加载分类表格
  */
-function loadCategoriesTable() {
-  const categories = getCategories();
-  const projects = getProjects();
+async function loadCategoriesTable() {
+  const categories = await fetchCategoriesFromApi();
+  const projects = await fetchProjectsFromApi();
 
   const tbody = document.getElementById('categoriesTable');
   tbody.innerHTML = categories.map(c => {
@@ -287,7 +484,7 @@ function bindProjectEvents() {
   });
 
   // 保存项目
-  saveBtn.addEventListener('click', () => {
+  saveBtn.addEventListener('click', async () => {
     const editId = document.getElementById('editProjectId').value;
     const projectData = {
       name: document.getElementById('projectName').value,
@@ -305,25 +502,35 @@ function bindProjectEvents() {
       return showToast('项目名称和所有者为必填项', 'error');
     }
 
-    if (editId) {
-      updateProject(editId, projectData);
-      showToast('项目已更新', 'success');
-    } else {
-      addProject(projectData);
-      showToast('项目已添加', 'success');
-    }
+    saveBtn.disabled = true;
+    saveBtn.textContent = '保存中...';
 
-    modal.classList.remove('active');
-    loadProjectsTable();
-    loadDashboardStats();
-    loadRecentProjects();
+    try {
+      if (editId) {
+        await updateProjectToApi(editId, projectData);
+        showToast('项目已更新', 'success');
+      } else {
+        await addProjectToApi(projectData);
+        showToast('项目已添加', 'success');
+      }
+
+      modal.classList.remove('active');
+      await loadProjectsTable();
+      await loadDashboardStats();
+      await loadRecentProjects();
+    } catch (error) {
+      showToast('保存失败: ' + error.message, 'error');
+    } finally {
+      saveBtn.disabled = false;
+      saveBtn.textContent = '保存';
+    }
   });
 }
 
 /**
  * 处理项目表格操作
  */
-function handleProjectAction(e) {
+async function handleProjectAction(e) {
   const action = e.target.closest('[data-action]').dataset.action;
   const row = e.target.closest('tr');
   const projectId = row.dataset.id;
@@ -332,10 +539,10 @@ function handleProjectAction(e) {
     editProject(projectId);
   } else if (action === 'delete') {
     if (confirm('确定要删除这个项目吗？')) {
-      deleteProject(projectId);
+      await deleteProjectFromApi(projectId);
       showToast('项目已删除', 'success');
-      loadProjectsTable();
-      loadDashboardStats();
+      await loadProjectsTable();
+      await loadDashboardStats();
     }
   }
 }
@@ -343,8 +550,8 @@ function handleProjectAction(e) {
 /**
  * 编辑项目
  */
-function editProject(projectId) {
-  const projects = getProjects();
+async function editProject(projectId) {
+  const projects = await fetchProjectsFromApi();
   const project = projects.find(p => p.id === projectId);
   if (!project) return;
 
@@ -380,8 +587,8 @@ function resetProjectForm() {
 /**
  * 加载分类下拉选项
  */
-function loadCategoryOptions() {
-  const categories = getCategories();
+async function loadCategoryOptions() {
+  const categories = await fetchCategoriesFromApi();
   const select = document.getElementById('projectCategory');
   select.innerHTML = `
     <option value="">选择分类</option>
@@ -422,16 +629,16 @@ function bindImportEvents() {
     });
 
     // 添加成功的项目
-    results.filter(r => r.success).forEach(r => {
-      addProject({
+    for (const r of results.filter(r => r.success)) {
+      await addProjectToApi({
         ...r.data,
         github_url: r.url,
         tags: r.data.topics || []
       });
-    });
+    }
 
-    loadProjectsTable();
-    loadDashboardStats();
+    await loadProjectsTable();
+    await loadDashboardStats();
 
     showToast(`导入完成：成功 ${successCount}，失败 ${results.length - successCount}`,
       successCount > 0 ? 'success' : 'error');
@@ -448,24 +655,6 @@ function bindImportEvents() {
  * 绑定设置事件
  */
 function bindSettingsEvents() {
-  // 修改密码
-  document.getElementById('changePasswordBtn').addEventListener('click', () => {
-    const newPassword = document.getElementById('newPassword').value;
-    const confirmPassword = document.getElementById('confirmPassword').value;
-
-    if (!newPassword) {
-      return showToast('请输入新密码', 'error');
-    }
-    if (newPassword !== confirmPassword) {
-      return showToast('两次密码不一致', 'error');
-    }
-
-    localStorage.setItem(PASSWORD_KEY, newPassword);
-    document.getElementById('newPassword').value = '';
-    document.getElementById('confirmPassword').value = '';
-    showToast('密码已修改', 'success');
-  });
-
   // 导出数据
   document.getElementById('exportDataBtn').addEventListener('click', () => {
     const data = exportAllData();
@@ -485,20 +674,30 @@ function bindSettingsEvents() {
     importFileInput.click();
   });
 
-  importFileInput.addEventListener('change', (e) => {
+  importFileInput.addEventListener('change', async (e) => {
     const file = e.target.files[0];
     if (!file) return;
 
     const reader = new FileReader();
-    reader.onload = (event) => {
+    reader.onload = async (event) => {
       try {
         const data = JSON.parse(event.target.result);
         if (confirm('确定要导入数据吗？这将覆盖现有数据。')) {
           importData(data);
-          loadProjectsTable();
-          loadCategoriesTable();
-          loadDashboardStats();
-          showToast('数据已导入', 'success');
+
+          // 同步到 D1
+          showToast('正在同步到云端...', 'info');
+          const syncResult = await syncDataToD1();
+
+          await loadProjectsTable();
+          await loadCategoriesTable();
+          await loadDashboardStats();
+
+          if (syncResult.success) {
+            showToast('数据已导入并同步到云端', 'success');
+          } else {
+            showToast('数据已导入（本地），云端同步失败', 'warning');
+          }
         }
       } catch (error) {
         showToast('文件格式错误', 'error');
@@ -509,17 +708,50 @@ function bindSettingsEvents() {
   });
 
   // 重置数据
-  document.getElementById('resetDataBtn').addEventListener('click', () => {
+  document.getElementById('resetDataBtn').addEventListener('click', async () => {
     if (confirm('确定要重置所有数据吗？此操作不可撤销！')) {
       setProjects(defaultData.projects);
       setCategories(defaultData.categories);
-      loadProjectsTable();
-      loadCategoriesTable();
-      loadDashboardStats();
-      loadRecentProjects();
+
+      // 同步到 D1
+      await syncDataToD1();
+
+      await loadProjectsTable();
+      await loadCategoriesTable();
+      await loadDashboardStats();
+      await loadRecentProjects();
       showToast('数据已重置', 'success');
     }
   });
+
+  // 同步到云端按钮（如果不存在则创建）
+  const settingsPage = document.getElementById('pageSettings');
+  const syncBtn = document.createElement('button');
+  syncBtn.className = 'btn btn-primary';
+  syncBtn.id = 'syncToCloudBtn';
+  syncBtn.textContent = '☁️ 同步到云端';
+  syncBtn.style.marginLeft = 'var(--spacing-md)';
+  syncBtn.addEventListener('click', async () => {
+    syncBtn.disabled = true;
+    syncBtn.textContent = '同步中...';
+
+    const result = await syncDataToD1();
+
+    if (result.success) {
+      showToast(`同步成功：${result.results?.projects || 0} 个项目，${result.results?.categories || 0} 个分类`, 'success');
+    } else {
+      showToast('同步失败: ' + (result.error || '未知错误'), 'error');
+    }
+
+    syncBtn.disabled = false;
+    syncBtn.textContent = '☁️ 同步到云端';
+  });
+
+  // 添加到数据管理区域
+  const dataManagementDiv = settingsPage.querySelector('div[style*="display: flex"]');
+  if (dataManagementDiv && !document.getElementById('syncToCloudBtn')) {
+    dataManagementDiv.appendChild(syncBtn);
+  }
 }
 
 // ===== 工具函数 =====
