@@ -502,6 +502,18 @@ function bindProjectEvents() {
       return showToast('项目名称和所有者为必填项', 'error');
     }
 
+    // 检查项目是否已存在（仅在新增时检查）
+    if (!editId) {
+      const existingProjects = await fetchProjectsFromApi();
+      const isDuplicate = existingProjects.some(p =>
+        p.owner.toLowerCase() === projectData.owner.toLowerCase() &&
+        p.name.toLowerCase() === projectData.name.toLowerCase()
+      );
+      if (isDuplicate) {
+        return showToast(`项目 ${projectData.owner}/${projectData.name} 已存在，请勿重复添加`, 'error');
+      }
+    }
+
     saveBtn.disabled = true;
     saveBtn.textContent = '保存中...';
 
@@ -618,6 +630,9 @@ function bindImportEvents() {
     progressEl.style.display = 'block';
     progressEl.innerHTML = '';
 
+    // 获取现有项目列表用于重复检查
+    const existingProjects = await fetchProjectsFromApi();
+
     const { results, successCount } = await batchGetRepoInfo(urls, (current, total, result) => {
       const item = document.createElement('div');
       item.className = `import-item ${result.success ? 'success' : 'error'}`;
@@ -628,20 +643,43 @@ function bindImportEvents() {
       progressEl.scrollTop = progressEl.scrollHeight;
     });
 
-    // 添加成功的项目
+    // 添加成功的项目（跳过已存在的）
+    let addedCount = 0;
+    let skippedCount = 0;
     for (const r of results.filter(r => r.success)) {
+      // 检查是否已存在
+      const isDuplicate = existingProjects.some(p =>
+        p.owner.toLowerCase() === r.data.owner.toLowerCase() &&
+        p.name.toLowerCase() === r.data.name.toLowerCase()
+      );
+
+      if (isDuplicate) {
+        skippedCount++;
+        const skipItem = document.createElement('div');
+        skipItem.className = 'import-item warning';
+        skipItem.textContent = `⚠ ${r.data.owner}/${r.data.name} 已存在，跳过`;
+        progressEl.appendChild(skipItem);
+        progressEl.scrollTop = progressEl.scrollHeight;
+        continue;
+      }
+
       await addProjectToApi({
         ...r.data,
         github_url: r.url,
         tags: r.data.topics || []
       });
+      addedCount++;
     }
 
     await loadProjectsTable();
     await loadDashboardStats();
 
-    showToast(`导入完成：成功 ${successCount}，失败 ${results.length - successCount}`,
-      successCount > 0 ? 'success' : 'error');
+    const failedCount = results.length - successCount;
+    let message = `导入完成：成功 ${addedCount}`;
+    if (skippedCount > 0) message += `，跳过 ${skippedCount} 个重复`;
+    if (failedCount > 0) message += `，失败 ${failedCount}`;
+
+    showToast(message, addedCount > 0 ? 'success' : (skippedCount > 0 ? 'info' : 'error'));
 
     startBtn.disabled = false;
     startBtn.textContent = '开始导入';
