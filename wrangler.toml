@@ -5,6 +5,10 @@ name = "awesome-popular-repos"
 # 兼容性日期
 compatibility_date = "2024-01-01"
 
+# Pages 构建输出目录
+pages_build_output_dir = "dist"
+
+
 # D1 数据库绑定
 # 注意：部署前需要在 Cloudflare 控制台创建 D1 数据库，并替换 database_id
 [[d1_databases]]
