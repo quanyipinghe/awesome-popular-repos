@@ -297,6 +297,7 @@ async function initAdminPage() {
   bindProjectEvents();
   bindImportEvents();
   bindSettingsEvents();
+  bindCategoryEvents();
 }
 
 /**
@@ -399,6 +400,260 @@ async function loadCategoriesTable() {
       </tr>
     `;
   }).join('');
+
+  // 绑定分类行操作事件
+  tbody.querySelectorAll('[data-action]').forEach(btn => {
+    btn.addEventListener('click', handleCategoryAction);
+  });
+}
+
+// ===== 分类管理 =====
+
+/**
+ * 绑定分类管理事件
+ */
+function bindCategoryEvents() {
+  const modal = document.getElementById('categoryModal');
+  const addBtn = document.getElementById('addCategoryBtn');
+  const closeBtn = document.getElementById('categoryModalClose');
+  const cancelBtn = document.getElementById('categoryModalCancel');
+  const saveBtn = document.getElementById('categoryModalSave');
+
+  // 打开添加模态框
+  addBtn.addEventListener('click', () => {
+    resetCategoryForm();
+    document.getElementById('categoryModalTitle').textContent = '添加分类';
+    modal.classList.add('active');
+  });
+
+  // 关闭模态框
+  closeBtn.addEventListener('click', () => modal.classList.remove('active'));
+  cancelBtn.addEventListener('click', () => modal.classList.remove('active'));
+  modal.addEventListener('click', (e) => {
+    if (e.target === modal) modal.classList.remove('active');
+  });
+
+  // 自动生成 slug
+  document.getElementById('categoryName').addEventListener('input', (e) => {
+    const editId = document.getElementById('editCategoryId').value;
+    // 只在新增时自动生成 slug
+    if (!editId) {
+      const slug = generateSlug(e.target.value);
+      document.getElementById('categorySlug').value = slug;
+    }
+  });
+
+  // 保存分类
+  saveBtn.addEventListener('click', async () => {
+    const editId = document.getElementById('editCategoryId').value;
+    const categoryData = {
+      name: document.getElementById('categoryName').value.trim(),
+      slug: document.getElementById('categorySlug').value.trim().toLowerCase(),
+      description: document.getElementById('categoryDescription').value.trim()
+    };
+
+    if (!categoryData.name || !categoryData.slug) {
+      return showToast('分类名称和 Slug 为必填项', 'error');
+    }
+
+    // 验证 slug 格式
+    if (!/^[a-z0-9-]+$/.test(categoryData.slug)) {
+      return showToast('Slug 只能包含小写字母、数字和连字符', 'error');
+    }
+
+    // 检查分类是否已存在（仅在新增时检查）
+    if (!editId) {
+      const existingCategories = await fetchCategoriesFromApi();
+      const isDuplicate = existingCategories.some(c =>
+        c.slug === categoryData.slug || c.id === categoryData.slug
+      );
+      if (isDuplicate) {
+        return showToast(`分类 Slug "${categoryData.slug}" 已存在`, 'error');
+      }
+    }
+
+    saveBtn.disabled = true;
+    saveBtn.textContent = '保存中...';
+
+    try {
+      if (editId) {
+        await updateCategoryToApi(editId, categoryData);
+        showToast('分类已更新', 'success');
+      } else {
+        // 新增分类时使用 slug 作为 id
+        categoryData.id = categoryData.slug;
+        await addCategoryToApi(categoryData);
+        showToast('分类已添加', 'success');
+      }
+
+      modal.classList.remove('active');
+      await loadCategoriesTable();
+      await loadCategoryOptions();
+      await loadDashboardStats();
+    } catch (error) {
+      showToast('保存失败: ' + error.message, 'error');
+    } finally {
+      saveBtn.disabled = false;
+      saveBtn.textContent = '保存';
+    }
+  });
+}
+
+/**
+ * 处理分类表格操作
+ */
+async function handleCategoryAction(e) {
+  const action = e.target.closest('[data-action]').dataset.action;
+  const row = e.target.closest('tr');
+  const categoryId = row.dataset.id;
+
+  if (action === 'editCategory') {
+    editCategory(categoryId);
+  } else if (action === 'deleteCategory') {
+    // 检查分类下是否有项目
+    const projects = await fetchProjectsFromApi();
+    const projectsInCategory = projects.filter(p => p.category === categoryId);
+
+    if (projectsInCategory.length > 0) {
+      return showToast(`该分类下有 ${projectsInCategory.length} 个项目，无法删除`, 'error');
+    }
+
+    if (confirm('确定要删除这个分类吗？')) {
+      await deleteCategoryFromApi(categoryId);
+      showToast('分类已删除', 'success');
+      await loadCategoriesTable();
+      await loadCategoryOptions();
+      await loadDashboardStats();
+    }
+  }
+}
+
+/**
+ * 编辑分类
+ */
+async function editCategory(categoryId) {
+  const categories = await fetchCategoriesFromApi();
+  const category = categories.find(c => c.id === categoryId);
+  if (!category) return;
+
+  document.getElementById('editCategoryId').value = categoryId;
+  document.getElementById('categoryName').value = category.name || '';
+  document.getElementById('categorySlug').value = category.slug || category.id;
+  document.getElementById('categoryDescription').value = category.description || '';
+
+  document.getElementById('categoryModalTitle').textContent = '编辑分类';
+  document.getElementById('categoryModal').classList.add('active');
+}
+
+/**
+ * 重置分类表单
+ */
+function resetCategoryForm() {
+  document.getElementById('editCategoryId').value = '';
+  document.getElementById('categoryName').value = '';
+  document.getElementById('categorySlug').value = '';
+  document.getElementById('categoryDescription').value = '';
+}
+
+/**
+ * 生成 URL 友好的 slug
+ */
+function generateSlug(text) {
+  return text
+    .toLowerCase()
+    .replace(/[^\w\s-]/g, '')  // 移除特殊字符
+    .replace(/\s+/g, '-')       // 空格替换为连字符
+    .replace(/-+/g, '-')        // 多个连字符合并为一个
+    .trim();
+}
+
+/**
+ * 添加分类到 API
+ */
+async function addCategoryToApi(categoryData) {
+  try {
+    const result = await apiRequest('/categories', {
+      method: 'POST',
+      body: JSON.stringify(categoryData),
+    });
+    if (result.success) {
+      // 同步到本地
+      const categories = getCategories();
+      categories.push(result.category || categoryData);
+      setCategories(categories);
+      return result;
+    }
+    return result;
+  } catch (error) {
+    console.warn('[Admin] API 请求失败，使用本地存储:', error);
+    const categories = getCategories();
+    categories.push(categoryData);
+    setCategories(categories);
+    return { success: true, local: true };
+  }
+}
+
+/**
+ * 更新分类到 API
+ */
+async function updateCategoryToApi(id, updates) {
+  try {
+    const result = await apiRequest('/categories', {
+      method: 'PUT',
+      body: JSON.stringify({ id, ...updates }),
+    });
+    if (result.success) {
+      // 同步到本地
+      const categories = getCategories();
+      const index = categories.findIndex(c => c.id === id);
+      if (index !== -1) {
+        categories[index] = { ...categories[index], ...updates };
+        setCategories(categories);
+      }
+      return result;
+    }
+    return result;
+  } catch (error) {
+    console.warn('[Admin] API 请求失败，使用本地存储:', error);
+    const categories = getCategories();
+    const index = categories.findIndex(c => c.id === id);
+    if (index !== -1) {
+      categories[index] = { ...categories[index], ...updates };
+      setCategories(categories);
+    }
+    return { success: true, local: true };
+  }
+}
+
+/**
+ * 从 API 删除分类
+ */
+async function deleteCategoryFromApi(id) {
+  try {
+    const result = await apiRequest(`/categories?id=${id}`, {
+      method: 'DELETE',
+    });
+    if (result.success) {
+      // 同步到本地
+      const categories = getCategories();
+      const index = categories.findIndex(c => c.id === id);
+      if (index !== -1) {
+        categories.splice(index, 1);
+        setCategories(categories);
+      }
+      return result;
+    }
+    return result;
+  } catch (error) {
+    console.warn('[Admin] API 请求失败，使用本地存储:', error);
+    const categories = getCategories();
+    const index = categories.findIndex(c => c.id === id);
+    if (index !== -1) {
+      categories.splice(index, 1);
+      setCategories(categories);
+    }
+    return { success: true, local: true };
+  }
 }
 
 // ===== 导航 =====

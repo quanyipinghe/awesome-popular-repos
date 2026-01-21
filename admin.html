@@ -317,6 +317,38 @@
     </div>
   </div>
 
+  <!-- 分类模态框 -->
+  <div class="modal-overlay" id="categoryModal">
+    <div class="modal">
+      <div class="modal-header">
+        <h3 class="modal-title" id="categoryModalTitle">添加分类</h3>
+        <button class="modal-close" id="categoryModalClose">&times;</button>
+      </div>
+      <div class="modal-body">
+        <form id="categoryForm">
+          <input type="hidden" id="editCategoryId">
+          <div class="form-group">
+            <label class="form-label">分类名称 *</label>
+            <input type="text" class="form-input" id="categoryName" placeholder="例如：前端框架" required>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Slug (URL 友好的标识符) *</label>
+            <input type="text" class="form-input" id="categorySlug" placeholder="例如：frontend-frameworks" required>
+            <small style="color: var(--text-muted);">只能包含小写字母、数字和连字符</small>
+          </div>
+          <div class="form-group">
+            <label class="form-label">描述</label>
+            <textarea class="form-input form-textarea" id="categoryDescription" placeholder="分类的简短描述"></textarea>
+          </div>
+        </form>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-outline" id="categoryModalCancel">取消</button>
+        <button class="btn btn-primary" id="categoryModalSave">保存</button>
+      </div>
+    </div>
+  </div>
+
   <!-- Toast 通知容器 -->
   <div class="toast-container" id="toastContainer"></div>
 
