@@ -349,6 +349,24 @@
     </div>
   </div>
 
+  <!-- 确认弹框 -->
+  <div class="modal-overlay" id="confirmModal">
+    <div class="modal confirm-modal">
+      <div class="modal-header">
+        <h3 class="modal-title" id="confirmModalTitle">确认操作</h3>
+        <button class="modal-close" id="confirmModalClose">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div class="confirm-icon" id="confirmModalIcon">⚠️</div>
+        <p class="confirm-message" id="confirmModalMessage">确定要执行此操作吗？</p>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-outline" id="confirmModalCancel">取消</button>
+        <button class="btn btn-danger" id="confirmModalConfirm">确认</button>
+      </div>
+    </div>
+  </div>
+
   <!-- Toast 通知容器 -->
   <div class="toast-container" id="toastContainer"></div>
 

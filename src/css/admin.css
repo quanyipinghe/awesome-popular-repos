@@ -301,6 +301,73 @@
   color: var(--accent-pink);
 }
 
+.import-item.warning {
+  color: var(--accent-yellow);
+}
+
+/* ===== 确认弹框 ===== */
+.confirm-modal {
+  max-width: 400px;
+  text-align: center;
+}
+
+.confirm-modal .modal-body {
+  padding: var(--spacing-2xl) var(--spacing-xl);
+}
+
+.confirm-icon {
+  font-size: 3rem;
+  margin-bottom: var(--spacing-lg);
+  animation: shake 0.5s ease-in-out;
+}
+
+@keyframes shake {
+
+  0%,
+  100% {
+    transform: translateX(0);
+  }
+
+  20%,
+  60% {
+    transform: translateX(-5px);
+  }
+
+  40%,
+  80% {
+    transform: translateX(5px);
+  }
+}
+
+.confirm-message {
+  font-size: var(--font-size-base);
+  color: var(--text-secondary);
+  line-height: 1.6;
+}
+
+.confirm-modal .modal-footer {
+  justify-content: center;
+  gap: var(--spacing-lg);
+}
+
+/* ===== 危险按钮 ===== */
+.btn-danger {
+  background: linear-gradient(135deg, var(--accent-pink), #d32f2f);
+  border: none;
+  color: white;
+  padding: var(--spacing-sm) var(--spacing-xl);
+  border-radius: var(--radius-md);
+  font-family: var(--font-display);
+  font-weight: 600;
+  cursor: pointer;
+  transition: all var(--transition-base);
+}
+
+.btn-danger:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 20px rgba(255, 64, 129, 0.4);
+}
+
 /* ===== 登录页面 ===== */
 .login-container {
   min-height: 100vh;

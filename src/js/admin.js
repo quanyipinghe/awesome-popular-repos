@@ -518,7 +518,15 @@ async function handleCategoryAction(e) {
       return showToast(`该分类下有 ${projectsInCategory.length} 个项目，无法删除`, 'error');
     }
 
-    if (confirm('确定要删除这个分类吗？')) {
+    const confirmed = await showConfirm({
+      title: '删除分类',
+      message: '确定要删除这个分类吗？此操作不可撤销。',
+      icon: '🗑️',
+      confirmText: '删除',
+      cancelText: '取消'
+    });
+
+    if (confirmed) {
       await deleteCategoryFromApi(categoryId);
       showToast('分类已删除', 'success');
       await loadCategoriesTable();
@@ -805,7 +813,15 @@ async function handleProjectAction(e) {
   if (action === 'edit') {
     editProject(projectId);
   } else if (action === 'delete') {
-    if (confirm('确定要删除这个项目吗？')) {
+    const confirmed = await showConfirm({
+      title: '删除项目',
+      message: '确定要删除这个项目吗？此操作不可撤销。',
+      icon: '🗑️',
+      confirmText: '删除',
+      cancelText: '取消'
+    });
+
+    if (confirmed) {
       await deleteProjectFromApi(projectId);
       showToast('项目已删除', 'success');
       await loadProjectsTable();
@@ -975,7 +991,15 @@ function bindSettingsEvents() {
     reader.onload = async (event) => {
       try {
         const data = JSON.parse(event.target.result);
-        if (confirm('确定要导入数据吗？这将覆盖现有数据。')) {
+        const confirmed = await showConfirm({
+          title: '导入数据',
+          message: '确定要导入数据吗？这将覆盖现有数据。',
+          icon: '📥',
+          confirmText: '导入',
+          cancelText: '取消'
+        });
+
+        if (confirmed) {
           importData(data);
 
           // 同步到 D1
@@ -1002,7 +1026,15 @@ function bindSettingsEvents() {
 
   // 重置数据
   document.getElementById('resetDataBtn').addEventListener('click', async () => {
-    if (confirm('确定要重置所有数据吗？此操作不可撤销！')) {
+    const confirmed = await showConfirm({
+      title: '重置数据',
+      message: '确定要重置所有数据吗？此操作不可撤销！',
+      icon: '⚠️',
+      confirmText: '重置',
+      cancelText: '取消'
+    });
+
+    if (confirmed) {
       setProjects(defaultData.projects);
       setCategories(defaultData.categories);
 
@@ -1064,6 +1096,88 @@ function showToast(message, type = 'info') {
     toast.style.transform = 'translateX(100%)';
     setTimeout(() => toast.remove(), 300);
   }, 3000);
+}
+
+/**
+ * 显示自定义确认弹框
+ * @param {Object} options - 配置选项
+ * @param {string} options.title - 标题
+ * @param {string} options.message - 消息内容
+ * @param {string} options.icon - 图标 (emoji)
+ * @param {string} options.confirmText - 确认按钮文字
+ * @param {string} options.cancelText - 取消按钮文字
+ * @returns {Promise<boolean>} 用户是否确认
+ */
+function showConfirm(options = {}) {
+  return new Promise((resolve) => {
+    const {
+      title = '确认操作',
+      message = '确定要执行此操作吗？',
+      icon = '⚠️',
+      confirmText = '确认',
+      cancelText = '取消'
+    } = options;
+
+    const modal = document.getElementById('confirmModal');
+    const titleEl = document.getElementById('confirmModalTitle');
+    const messageEl = document.getElementById('confirmModalMessage');
+    const iconEl = document.getElementById('confirmModalIcon');
+    const confirmBtn = document.getElementById('confirmModalConfirm');
+    const cancelBtn = document.getElementById('confirmModalCancel');
+    const closeBtn = document.getElementById('confirmModalClose');
+
+    // 设置内容
+    titleEl.textContent = title;
+    messageEl.textContent = message;
+    iconEl.textContent = icon;
+    confirmBtn.textContent = confirmText;
+    cancelBtn.textContent = cancelText;
+
+    // 重置图标动画
+    iconEl.style.animation = 'none';
+    iconEl.offsetHeight; // 触发 reflow
+    iconEl.style.animation = 'shake 0.5s ease-in-out';
+
+    // 清理之前的事件监听器
+    const newConfirmBtn = confirmBtn.cloneNode(true);
+    const newCancelBtn = cancelBtn.cloneNode(true);
+    const newCloseBtn = closeBtn.cloneNode(true);
+    confirmBtn.parentNode.replaceChild(newConfirmBtn, confirmBtn);
+    cancelBtn.parentNode.replaceChild(newCancelBtn, cancelBtn);
+    closeBtn.parentNode.replaceChild(newCloseBtn, closeBtn);
+
+    // 关闭弹框的函数
+    const closeModal = (result) => {
+      modal.classList.remove('active');
+      resolve(result);
+    };
+
+    // 绑定事件
+    newConfirmBtn.addEventListener('click', () => closeModal(true));
+    newCancelBtn.addEventListener('click', () => closeModal(false));
+    newCloseBtn.addEventListener('click', () => closeModal(false));
+
+    // 点击背景关闭
+    const handleBackdropClick = (e) => {
+      if (e.target === modal) {
+        closeModal(false);
+        modal.removeEventListener('click', handleBackdropClick);
+      }
+    };
+    modal.addEventListener('click', handleBackdropClick);
+
+    // ESC 键关闭
+    const handleEsc = (e) => {
+      if (e.key === 'Escape') {
+        closeModal(false);
+        document.removeEventListener('keydown', handleEsc);
+      }
+    };
+    document.addEventListener('keydown', handleEsc);
+
+    // 显示弹框
+    modal.classList.add('active');
+  });
 }
 
 /**
