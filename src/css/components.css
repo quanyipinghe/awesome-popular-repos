@@ -186,8 +186,8 @@
 /* ===== 收藏按钮 ===== */
 .favorite-btn {
   position: absolute;
-  top: var(--spacing-md);
-  right: var(--spacing-md);
+  top: var(--spacing-sm);
+  right: var(--spacing-sm);
   width: 32px;
   height: 32px;
   display: flex;
