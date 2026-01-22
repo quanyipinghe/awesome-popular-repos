@@ -89,22 +89,44 @@
 
 /* ===== 亮色主题变量覆盖 ===== */
 [data-theme="light"] {
-  --bg-primary: #f5f5ff;
-  --bg-secondary: #e8e8f5;
-  --bg-tertiary: #d0d0e8;
-  --bg-card: rgba(255, 255, 255, 0.9);
-  --bg-card-hover: rgba(255, 255, 255, 1);
-  --bg-overlay: rgba(245, 245, 255, 0.95);
+  /* ===== 背景色 - 干净明亮 ===== */
+  --bg-primary: #f8f9fa;
+  --bg-secondary: #ffffff;
+  --bg-tertiary: #f1f3f5;
+  --bg-card: #ffffff;
+  --bg-card-hover: #ffffff;
+  --bg-overlay: rgba(255, 255, 255, 0.95);
   
-  --text-primary: #1a1a2e;
-  --text-secondary: #4a4a6a;
-  --text-muted: #8080a0;
+  /* ===== 文字颜色 - 高对比度 ===== */
+  --text-primary: #111827;
+  --text-secondary: #4b5563;
+  --text-muted: #9ca3af;
+  --text-accent: var(--primary);
   
-  --border-color: rgba(0, 0, 0, 0.1);
+  /* ===== 边框和分隔线 ===== */
+  --border-color: #e5e7eb;
+  --border-glow: rgba(156, 39, 176, 0.2);
   
+  /* ===== 品牌色适配 ===== */
   --primary: #9c27b0;
-  --primary-glow: rgba(156, 39, 176, 0.3);
-  --accent-cyan: #00acc1;
+  --primary-light: #ce93d8;
+  --primary-dark: #7b1fa2;
+  --primary-glow: rgba(156, 39, 176, 0.2);
+  
+  /* ===== 强调色适配 ===== */
+  --accent-cyan: #00838f;
+  --accent-cyan-glow: rgba(0, 131, 143, 0.15);
+  --accent-pink: #d81b60;
+  --accent-green: #2e7d32;
+  --accent-yellow: #f9a825;
+  --accent-orange: #ef6c00;
+  
+  /* ===== 阴影 - 柔和 ===== */
+  --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+  --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+  --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+  --shadow-glow: 0 4px 20px rgba(156, 39, 176, 0.15);
+  --shadow-glow-cyan: 0 4px 20px rgba(0, 131, 143, 0.15);
 }
 
 /* ===== 基础重置 ===== */
@@ -131,6 +153,7 @@ body {
   overflow-x: hidden;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  transition: background-color 0.3s ease, color 0.3s ease;
 }
 
 /* ===== 动态网格背景 ===== */
@@ -149,6 +172,12 @@ body::before {
   z-index: -1;
 }
 
+[data-theme="light"] body::before {
+  background: 
+    linear-gradient(90deg, rgba(0, 0, 0, 0.03) 1px, transparent 1px),
+    linear-gradient(rgba(0, 0, 0, 0.03) 1px, transparent 1px);
+}
+
 /* ===== 渐变背景光晕 ===== */
 body::after {
   content: '';
@@ -162,6 +191,11 @@ body::after {
   pointer-events: none;
   z-index: -2;
   animation: backgroundPulse 20s ease-in-out infinite alternate;
+}
+
+[data-theme="light"] body::after {
+  background: radial-gradient(ellipse at 30% 20%, rgba(156, 39, 176, 0.05) 0%, transparent 50%),
+              radial-gradient(ellipse at 70% 60%, rgba(0, 131, 143, 0.05) 0%, transparent 40%);
 }
 
 @keyframes backgroundPulse {

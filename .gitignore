@@ -10,6 +10,8 @@ dist/
 .vscode/
 *.swp
 *.swo
+.gemini
+.shared
 
 # 系统文件
 .DS_Store

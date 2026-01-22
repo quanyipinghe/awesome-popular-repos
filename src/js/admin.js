@@ -18,7 +18,9 @@ import {
   importData,
   KEYS,
   get,
-  set
+  set,
+  getSettings,
+  setSettings
 } from './utils/storage.js';
 import { getRepoInfoFromUrl, batchGetRepoInfo, formatStars } from './utils/github-api.js';
 
@@ -1197,9 +1199,55 @@ function capitalize(str) {
   return str.charAt(0).toUpperCase() + str.slice(1);
 }
 
+// ===== 主题管理 =====
+
+/**
+ * 初始化主题
+ */
+function initTheme() {
+  // 确保存储已初始化 (虽然 initAdminPage 会初始化，但 initTheme 可能在 checkAuth 之前调用)
+  // 这里假设 getSettings 会处理未初始化的默认值
+  const settings = getSettings();
+  const savedTheme = settings.theme || 'dark';
+  document.documentElement.setAttribute('data-theme', savedTheme);
+  updateThemeButton(savedTheme);
+
+  const themeBtn = document.getElementById('themeToggle');
+  if (themeBtn) {
+    // 移除旧的监听器以防重复绑定
+    themeBtn.replaceWith(themeBtn.cloneNode(true));
+    document.getElementById('themeToggle').addEventListener('click', toggleTheme);
+  }
+}
+
+/**
+ * 切换主题
+ */
+function toggleTheme() {
+  const currentTheme = document.documentElement.getAttribute('data-theme') || 'dark';
+  const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
+  
+  document.documentElement.setAttribute('data-theme', newTheme);
+  setSettings({ theme: newTheme });
+  updateThemeButton(newTheme);
+}
+
+/**
+ * 更新主题按钮文本/图标
+ */
+function updateThemeButton(theme) {
+  const themeBtn = document.getElementById('themeToggle');
+  if (themeBtn) {
+    themeBtn.textContent = theme === 'light' ? '🌙 切换深色' : '🌞 切换浅色';
+  }
+}
+
 // ===== 初始化 =====
 
 document.addEventListener('DOMContentLoaded', () => {
+  // 初始化主题
+  initTheme();
+
   // 绑定登录表单
   document.getElementById('loginForm').addEventListener('submit', handleLogin);
 

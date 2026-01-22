@@ -44,9 +44,6 @@ export function createSearchBar(options = {}) {
   const clearBtn = wrapper.querySelector('.search-clear-btn');
   const suggestionsEl = wrapper.querySelector('.search-suggestions');
 
-  // 添加清除按钮样式
-  addClearButtonStyles(clearBtn);
-
   // 防抖搜索
   let debounceTimer = null;
 
@@ -90,41 +87,6 @@ export function createSearchBar(options = {}) {
   });
 
   return wrapper;
-}
-
-/**
- * 添加清除按钮样式
- * @param {HTMLElement} btn - 按钮元素
- */
-function addClearButtonStyles(btn) {
-  Object.assign(btn.style, {
-    position: 'absolute',
-    right: '16px',
-    top: '50%',
-    transform: 'translateY(-50%)',
-    display: 'none',
-    alignItems: 'center',
-    justifyContent: 'center',
-    width: '32px',
-    height: '32px',
-    padding: '0',
-    background: 'var(--bg-tertiary)',
-    border: 'none',
-    borderRadius: 'var(--radius-full)',
-    color: 'var(--text-muted)',
-    cursor: 'pointer',
-    transition: 'all var(--transition-fast)'
-  });
-
-  btn.addEventListener('mouseenter', () => {
-    btn.style.color = 'var(--accent-pink)';
-    btn.style.background = 'var(--bg-secondary)';
-  });
-
-  btn.addEventListener('mouseleave', () => {
-    btn.style.color = 'var(--text-muted)';
-    btn.style.background = 'var(--bg-tertiary)';
-  });
 }
 
 /**

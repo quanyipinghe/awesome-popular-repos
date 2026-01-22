@@ -19,6 +19,10 @@ const SORT_OPTIONS = [
   { value: 'updated-asc', label: '最早更新' }
 ];
 
+// 图标
+const ARROW_DOWN = `<svg class="select-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><polyline points="6 9 12 15 18 9"></polyline></svg>`;
+const CHECK_ICON = `<svg class="option-check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><polyline points="20 6 9 17 4 12"></polyline></svg>`;
+
 /**
  * 创建筛选面板
  * @param {Object} options - 配置选项
@@ -42,6 +46,7 @@ export function createFilterPanel(options = {}) {
     showFavorites: initialFilters.showFavorites || false
   };
 
+  // 生成 HTML 结构
   panel.innerHTML = `
     <div class="filter-row filter-languages">
       <button class="filter-tag active" data-language="all">全部</button>
@@ -49,53 +54,60 @@ export function createFilterPanel(options = {}) {
     `<button class="filter-tag" data-language="${lang}">${lang}</button>`
   ).join('')}
     </div>
-    <div class="filter-row filter-actions" style="margin-top: var(--spacing-md);">
-      <select class="filter-select input" aria-label="选择分类">
-        <option value="all">全部分类</option>
-        ${categories.map(cat =>
-    `<option value="${cat.id}">${cat.name}</option>`
-  ).join('')}
-      </select>
-      <select class="filter-sort input" aria-label="排序方式">
-        ${SORT_OPTIONS.map(opt =>
-    `<option value="${opt.value}" ${opt.value === state.sort ? 'selected' : ''}>${opt.label}</option>`
-  ).join('')}
-      </select>
+    <div class="filter-row filter-actions">
+      <!-- 自定义分类下拉 -->
+      <div class="custom-select" id="categorySelect">
+        <div class="select-trigger">
+          <span class="select-value">全部分类</span>
+          ${ARROW_DOWN}
+        </div>
+        <div class="select-options">
+          <div class="option selected" data-value="all">
+            <span>全部分类</span>
+            ${CHECK_ICON}
+          </div>
+          ${categories.map(cat => `
+            <div class="option" data-value="${cat.id}">
+              <span>${escapeHtml(cat.name)}</span>
+              ${CHECK_ICON}
+            </div>
+          `).join('')}
+        </div>
+      </div>
+
+      <!-- 自定义排序下拉 -->
+      <div class="custom-select" id="sortSelect">
+        <div class="select-trigger">
+          <span class="select-value">星标最多</span>
+          ${ARROW_DOWN}
+        </div>
+        <div class="select-options">
+          ${SORT_OPTIONS.map(opt => `
+            <div class="option ${opt.value === state.sort ? 'selected' : ''}" data-value="${opt.value}">
+              <span>${opt.label}</span>
+              ${CHECK_ICON}
+            </div>
+          `).join('')}
+        </div>
+      </div>
+
       <button class="filter-tag filter-favorites" data-favorites="false">
         ❤️ 收藏
       </button>
     </div>
   `;
 
-  // 添加额外样式
-  addFilterStyles(panel);
-
   // 绑定事件
   bindFilterEvents(panel, state, onFilterChange);
 
-  return panel;
-}
-
-/**
- * 添加筛选面板样式
- * @param {HTMLElement} panel - 面板元素
- */
-function addFilterStyles(panel) {
-  const selects = panel.querySelectorAll('select');
-  selects.forEach(select => {
-    Object.assign(select.style, {
-      width: 'auto',
-      minWidth: '140px',
-      padding: 'var(--spacing-sm) var(--spacing-md)',
-      fontSize: 'var(--font-size-sm)',
-      cursor: 'pointer'
-    });
+  // 全局点击关闭下拉菜单
+  document.addEventListener('click', (e) => {
+    if (!e.target.closest('.custom-select')) {
+      panel.querySelectorAll('.custom-select').forEach(el => el.classList.remove('active'));
+    }
   });
 
-  const actionsRow = panel.querySelector('.filter-actions');
-  if (actionsRow) {
-    actionsRow.style.gap = 'var(--spacing-md)';
-  }
+  return panel;
 }
 
 /**
@@ -118,17 +130,14 @@ function bindFilterEvents(panel, state, onFilterChange) {
     });
   });
 
-  // 分类筛选
-  const categorySelect = panel.querySelector('.filter-select');
-  categorySelect.addEventListener('change', (e) => {
-    state.category = e.target.value;
+  // 设置自定义下拉菜单逻辑
+  setupCustomSelect(panel.querySelector('#categorySelect'), (value) => {
+    state.category = value;
     onFilterChange({ ...state });
   });
 
-  // 排序
-  const sortSelect = panel.querySelector('.filter-sort');
-  sortSelect.addEventListener('change', (e) => {
-    state.sort = e.target.value;
+  setupCustomSelect(panel.querySelector('#sortSelect'), (value) => {
+    state.sort = value;
     onFilterChange({ ...state });
   });
 
@@ -139,6 +148,50 @@ function bindFilterEvents(panel, state, onFilterChange) {
     favoritesBtn.classList.toggle('active', state.showFavorites);
     favoritesBtn.dataset.favorites = state.showFavorites;
     onFilterChange({ ...state });
+  });
+}
+
+/**
+ * 设置自定义下拉菜单逻辑
+ * @param {HTMLElement} element - 下拉菜单容器元素
+ * @param {Function} onChange - 变更回调
+ */
+function setupCustomSelect(element, onChange) {
+  const trigger = element.querySelector('.select-trigger');
+  const valueSpan = element.querySelector('.select-value');
+  const optionsContainer = element.querySelector('.select-options');
+  const options = element.querySelectorAll('.option');
+
+  // 切换显示
+  trigger.addEventListener('click', (e) => {
+    e.stopPropagation();
+    // 关闭其他打开的下拉
+    document.querySelectorAll('.custom-select.active').forEach(el => {
+      if (el !== element) el.classList.remove('active');
+    });
+    element.classList.toggle('active');
+  });
+
+  // 选项点击
+  options.forEach(option => {
+    option.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const value = option.dataset.value;
+      const text = option.querySelector('span').textContent;
+
+      // 更新选中状态
+      options.forEach(opt => opt.classList.remove('selected'));
+      option.classList.add('selected');
+
+      // 更新显示值
+      valueSpan.textContent = text;
+
+      // 关闭下拉
+      element.classList.remove('active');
+
+      // 触发回调
+      onChange(value);
+    });
   });
 }
 
@@ -204,14 +257,11 @@ export function applyFilters(projects, filters, favorites = []) {
 }
 
 /**
- * 从项目列表中提取所有唯一语言
- * @param {Object[]} projects - 项目列表
- * @returns {string[]} 语言列表
+ * HTML 转义
  */
-export function extractLanguages(projects) {
-  const languages = new Set();
-  projects.forEach(p => {
-    if (p.language) languages.add(p.language);
-  });
-  return Array.from(languages).sort();
+function escapeHtml(text) {
+  if (!text) return '';
+  const div = document.createElement('div');
+  div.textContent = text;
+  return div.innerHTML;
 }
