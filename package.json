@@ -11,11 +11,11 @@
     "pages:dev": "npm run build && wrangler pages dev dist --d1 DB=awesome-repos-db",
     "pages:deploy": "npm run build && wrangler pages deploy dist",
     "db:create": "wrangler d1 create awesome-repos-db",
-    "db:init": "wrangler d1 execute awesome-repos-db --file=./schema.sql",
+    "db:init": "wrangler d1 execute awesome-repos-db --file=./schema.sql --remote",
     "db:init:local": "wrangler d1 execute awesome-repos-db --file=./schema.sql --local"
   },
   "devDependencies": {
     "vite": "^6.0.0",
-    "wrangler": "^3.0.0"
+    "wrangler": "^3.114.17"
   }
 }
