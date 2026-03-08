@@ -7,6 +7,8 @@ import {
   initStorage,
   getProjects,
   getCategories,
+  setProjects,
+  setCategories,
   getFavorites,
   getSettings,
   setSettings
@@ -18,6 +20,9 @@ import { createFilterPanel, applyFilters } from './components/FilterPanel.js';
 
 // 导入默认数据
 import defaultData from './data/projects.json';
+
+// API 基础路径
+const API_BASE = '/api';
 
 // 全局状态
 const state = {
@@ -34,6 +39,87 @@ const state = {
 };
 
 /**
+ * 统一解析分类字段（兼容字符串、JSON 字符串、数组）
+ * @param {string|string[]|null|undefined} value
+ * @returns {string[]}
+ */
+function normalizeCategoryIds(value) {
+  if (Array.isArray(value)) {
+    return [...new Set(value.map(v => String(v).trim()).filter(Boolean))];
+  }
+
+  if (typeof value === 'string') {
+    const trimmed = value.trim();
+    if (!trimmed) return [];
+
+    if (trimmed.startsWith('[') && trimmed.endsWith(']')) {
+      try {
+        const parsed = JSON.parse(trimmed);
+        return normalizeCategoryIds(parsed);
+      } catch {
+        return [];
+      }
+    }
+
+    return [trimmed];
+  }
+
+  return [];
+}
+
+/**
+ * 规范化项目结构，确保分类字段兼容
+ * @param {Object} project
+ * @returns {Object}
+ */
+function normalizeProjectForClient(project) {
+  const categories = normalizeCategoryIds(project?.categories ?? project?.category);
+  return {
+    ...project,
+    category: categories,
+    categories
+  };
+}
+
+/**
+ * 前台请求 API
+ * @param {string} endpoint
+ * @returns {Promise<any>}
+ */
+async function fetchApi(endpoint) {
+  const response = await fetch(`${API_BASE}${endpoint}`);
+  if (!response.ok) {
+    throw new Error(`API ${endpoint} 请求失败: ${response.status}`);
+  }
+  return response.json();
+}
+
+/**
+ * 尝试从云端拉取最新数据（失败静默回退本地）
+ */
+async function hydrateDataFromApi() {
+  const [projectsRes, categoriesRes] = await Promise.allSettled([
+    fetchApi('/projects'),
+    fetchApi('/categories')
+  ]);
+
+  if (projectsRes.status === 'fulfilled' && Array.isArray(projectsRes.value.projects)) {
+    const projects = projectsRes.value.projects.map(normalizeProjectForClient);
+    state.projects = projects;
+    setProjects(projects);
+  } else if (projectsRes.status === 'rejected') {
+    console.warn('[App] 获取云端项目失败，使用本地数据:', projectsRes.reason);
+  }
+
+  if (categoriesRes.status === 'fulfilled' && Array.isArray(categoriesRes.value.categories)) {
+    state.categories = categoriesRes.value.categories;
+    setCategories(state.categories);
+  } else if (categoriesRes.status === 'rejected') {
+    console.warn('[App] 获取云端分类失败，使用本地数据:', categoriesRes.reason);
+  }
+}
+
+/**
  * 初始化应用
  */
 async function initApp() {
@@ -43,14 +129,17 @@ async function initApp() {
   await initStorage(defaultData);
 
   // 加载数据
-  state.projects = getProjects();
+  state.projects = getProjects().map(normalizeProjectForClient);
   state.categories = getCategories();
 
   // 如果没有项目数据，使用默认数据
   if (state.projects.length === 0) {
-    state.projects = defaultData.projects;
+    state.projects = defaultData.projects.map(normalizeProjectForClient);
     state.categories = defaultData.categories;
   }
+
+  // 尝试用云端最新数据覆盖本地缓存（失败静默回退）
+  await hydrateDataFromApi();
 
   // 初始化主题
   initTheme();
