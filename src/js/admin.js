@@ -33,6 +33,69 @@ const API_BASE = '/api';
 // 认证 Token 存储键
 const AUTH_TOKEN_KEY = 'awesome_repos_auth_token';
 
+// 项目分类多选状态
+const projectCategoryMultiSelect = {
+  initialized: false,
+  categories: [],
+  selectedIds: []
+};
+
+/**
+ * 统一解析分类字段（兼容字符串、JSON 字符串、数组）
+ * @param {string|string[]|null|undefined} value
+ * @returns {string[]}
+ */
+function normalizeCategoryIds(value) {
+  if (Array.isArray(value)) {
+    return [...new Set(value.map(v => String(v).trim()).filter(Boolean))];
+  }
+
+  if (typeof value === 'string') {
+    const trimmed = value.trim();
+    if (!trimmed) return [];
+
+    if (trimmed.startsWith('[') && trimmed.endsWith(']')) {
+      try {
+        const parsed = JSON.parse(trimmed);
+        return normalizeCategoryIds(parsed);
+      } catch {
+        return [];
+      }
+    }
+
+    return [trimmed];
+  }
+
+  return [];
+}
+
+/**
+ * 获取项目的分类 ID 列表
+ * @param {Object} project
+ * @returns {string[]}
+ */
+function getProjectCategoryIds(project) {
+  if (!project) return [];
+  if (Array.isArray(project.categories)) {
+    return normalizeCategoryIds(project.categories);
+  }
+  return normalizeCategoryIds(project.category);
+}
+
+/**
+ * 规范化项目分类字段，统一供前端消费
+ * @param {Object} project
+ * @returns {Object}
+ */
+function normalizeProjectForClient(project) {
+  const categories = getProjectCategoryIds(project);
+  return {
+    ...project,
+    category: categories,
+    categories
+  };
+}
+
 // ===== API 辅助函数 =====
 
 /**
@@ -85,14 +148,15 @@ async function fetchProjectsFromApi() {
   try {
     const result = await apiRequest('/projects');
     if (result.projects) {
+      const normalizedProjects = result.projects.map(normalizeProjectForClient);
       // 更新本地缓存
-      setProjects(result.projects);
-      return result.projects;
+      setProjects(normalizedProjects);
+      return normalizedProjects;
     }
   } catch (error) {
     console.warn('[Admin] API 请求失败，使用本地数据:', error);
   }
-  return getProjects();
+  return getProjects().map(normalizeProjectForClient);
 }
 
 /**
@@ -123,13 +187,13 @@ async function addProjectToApi(projectData) {
     });
     if (result.success) {
       // 同步到本地
-      addProject(result.project || projectData);
+      addProject(normalizeProjectForClient(result.project || projectData));
       return result;
     }
     return result;
   } catch (error) {
     console.warn('[Admin] API 请求失败，使用本地存储:', error);
-    addProject(projectData);
+    addProject(normalizeProjectForClient(projectData));
     return { success: true, local: true };
   }
 }
@@ -138,19 +202,21 @@ async function addProjectToApi(projectData) {
  * 更新项目到 API
  */
 async function updateProjectToApi(id, updates) {
+  const normalizedUpdates = normalizeProjectForClient(updates);
+
   try {
     const result = await apiRequest('/projects', {
       method: 'PUT',
       body: JSON.stringify({ id, ...updates }),
     });
     if (result.success) {
-      updateProject(id, updates);
+      updateProject(id, normalizedUpdates);
       return result;
     }
     return result;
   } catch (error) {
     console.warn('[Admin] API 请求失败，使用本地存储:', error);
-    updateProject(id, updates);
+    updateProject(id, normalizedUpdates);
     return { success: true, local: true };
   }
 }
@@ -350,16 +416,24 @@ async function loadRecentProjects() {
 async function loadProjectsTable() {
   const projects = await fetchProjectsFromApi();
   const categories = await fetchCategoriesFromApi();
+  const categoryMap = new Map(categories.map(c => [c.id, c.name]));
 
   const tbody = document.getElementById('projectsTable');
   tbody.innerHTML = projects.map(p => {
-    const category = categories.find(c => c.id === p.category);
+    const categoryIds = getProjectCategoryIds(p);
+    const categoryNames = categoryIds.map(id => categoryMap.get(id) || id);
+    const categoryHtml = categoryNames.length > 0
+      ? `<div class="table-category-tags">${categoryNames.map(name => `
+          <span class="table-category-tag">${escapeHtml(name)}</span>
+        `).join('')}</div>`
+      : '-';
+
     return `
       <tr data-id="${p.id}">
         <td><strong>${escapeHtml(p.name)}</strong></td>
         <td>${escapeHtml(p.owner)}</td>
         <td>${escapeHtml(p.language || '-')}</td>
-        <td>${escapeHtml(category?.name || '-')}</td>
+        <td>${categoryHtml}</td>
         <td>⭐ ${formatStars(p.stars || 0)}</td>
         <td>
           <div class="table-actions">
@@ -386,7 +460,7 @@ async function loadCategoriesTable() {
 
   const tbody = document.getElementById('categoriesTable');
   tbody.innerHTML = categories.map(c => {
-    const count = projects.filter(p => p.category === c.id).length;
+    const count = projects.filter(p => getProjectCategoryIds(p).includes(c.id)).length;
     return `
       <tr data-id="${c.id}">
         <td><strong>${escapeHtml(c.name)}</strong></td>
@@ -514,7 +588,7 @@ async function handleCategoryAction(e) {
   } else if (action === 'deleteCategory') {
     // 检查分类下是否有项目
     const projects = await fetchProjectsFromApi();
-    const projectsInCategory = projects.filter(p => p.category === categoryId);
+    const projectsInCategory = projects.filter(p => getProjectCategoryIds(p).includes(categoryId));
 
     if (projectsInCategory.length > 0) {
       return showToast(`该分类下有 ${projectsInCategory.length} 个项目，无法删除`, 'error');
@@ -706,7 +780,8 @@ function bindProjectEvents() {
   const saveBtn = document.getElementById('modalSave');
   const fetchBtn = document.getElementById('fetchInfoBtn');
 
-  // 加载分类下拉选项
+  // 初始化分类多选并加载选项
+  initProjectCategoryMultiSelect();
   loadCategoryOptions();
 
   // 打开添加模态框
@@ -759,7 +834,7 @@ function bindProjectEvents() {
         `https://github.com/${document.getElementById('projectOwner').value}/${document.getElementById('projectName').value}`,
       language: document.getElementById('projectLanguage').value,
       stars: parseInt(document.getElementById('projectStars').value) || 0,
-      category: document.getElementById('projectCategory').value,
+      category: getSelectedProjectCategoryIds(),
       tags: document.getElementById('projectTags').value.split(',').map(t => t.trim()).filter(Boolean)
     };
 
@@ -839,6 +914,7 @@ async function editProject(projectId) {
   const projects = await fetchProjectsFromApi();
   const project = projects.find(p => p.id === projectId);
   if (!project) return;
+  await loadCategoryOptions();
 
   document.getElementById('editProjectId').value = projectId;
   document.getElementById('projectUrl').value = project.github_url || '';
@@ -847,7 +923,7 @@ async function editProject(projectId) {
   document.getElementById('projectDescription').value = project.description || '';
   document.getElementById('projectLanguage').value = project.language || '';
   document.getElementById('projectStars').value = project.stars || 0;
-  document.getElementById('projectCategory').value = project.category || '';
+  setProjectCategorySelection(getProjectCategoryIds(project));
   document.getElementById('projectTags').value = (project.tags || []).join(', ');
 
   document.getElementById('modalTitle').textContent = '编辑项目';
@@ -865,20 +941,137 @@ function resetProjectForm() {
   document.getElementById('projectDescription').value = '';
   document.getElementById('projectLanguage').value = '';
   document.getElementById('projectStars').value = '';
-  document.getElementById('projectCategory').value = '';
+  setProjectCategorySelection([]);
   document.getElementById('projectTags').value = '';
 }
 
 /**
- * 加载分类下拉选项
+ * 初始化项目分类多选组件
+ */
+function initProjectCategoryMultiSelect() {
+  if (projectCategoryMultiSelect.initialized) return;
+
+  const container = document.getElementById('projectCategorySelect');
+  const trigger = document.getElementById('projectCategoryTrigger');
+  const menu = document.getElementById('projectCategoryMenu');
+  const chips = document.getElementById('projectCategoryChips');
+
+  if (!container || !trigger || !menu || !chips) return;
+
+  trigger.addEventListener('click', (e) => {
+    e.stopPropagation();
+    container.classList.toggle('active');
+  });
+
+  menu.addEventListener('click', (e) => {
+    e.stopPropagation();
+    const option = e.target.closest('[data-category-id]');
+    if (!option) return;
+
+    const categoryId = option.dataset.categoryId;
+    const selected = new Set(projectCategoryMultiSelect.selectedIds);
+    if (selected.has(categoryId)) {
+      selected.delete(categoryId);
+    } else {
+      selected.add(categoryId);
+    }
+    setProjectCategorySelection([...selected]);
+  });
+
+  chips.addEventListener('click', (e) => {
+    e.stopPropagation();
+    const removeBtn = e.target.closest('[data-remove-id]');
+    if (!removeBtn) return;
+
+    const removeId = removeBtn.dataset.removeId;
+    setProjectCategorySelection(
+      projectCategoryMultiSelect.selectedIds.filter(id => id !== removeId)
+    );
+  });
+
+  document.addEventListener('click', (e) => {
+    if (!container.contains(e.target)) {
+      container.classList.remove('active');
+    }
+  });
+
+  projectCategoryMultiSelect.initialized = true;
+  renderProjectCategoryMultiSelect();
+}
+
+/**
+ * 获取当前选中的项目分类 ID 列表
+ * @returns {string[]}
+ */
+function getSelectedProjectCategoryIds() {
+  return [...projectCategoryMultiSelect.selectedIds];
+}
+
+/**
+ * 设置项目分类选中项
+ * @param {string[]|string} categoryIds
+ */
+function setProjectCategorySelection(categoryIds) {
+  const validCategoryIds = new Set(projectCategoryMultiSelect.categories.map(c => c.id));
+  projectCategoryMultiSelect.selectedIds = normalizeCategoryIds(categoryIds)
+    .filter(id => validCategoryIds.has(id));
+  renderProjectCategoryMultiSelect();
+}
+
+/**
+ * 渲染项目分类多选组件
+ */
+function renderProjectCategoryMultiSelect() {
+  const menu = document.getElementById('projectCategoryMenu');
+  const chips = document.getElementById('projectCategoryChips');
+  const value = document.getElementById('projectCategoryValue');
+
+  if (!menu || !chips || !value) return;
+
+  const categoryMap = new Map(projectCategoryMultiSelect.categories.map(c => [c.id, c.name]));
+  const selected = new Set(projectCategoryMultiSelect.selectedIds);
+
+  menu.innerHTML = projectCategoryMultiSelect.categories.map(category => `
+    <button
+      type="button"
+      class="custom-dropdown-item ${selected.has(category.id) ? 'selected' : ''}"
+      data-category-id="${escapeHtml(category.id)}"
+    >
+      <span class="category-option">
+        <span class="category-dot" data-category="${escapeHtml(category.id)}"></span>
+        <span class="custom-dropdown-item-text">${escapeHtml(category.name)}</span>
+      </span>
+      <span class="custom-dropdown-item-check">✓</span>
+    </button>
+  `).join('');
+
+  if (projectCategoryMultiSelect.selectedIds.length === 0) {
+    value.textContent = '选择分类（可多选）';
+    chips.innerHTML = '<span class="project-category-empty">未选择分类</span>';
+    return;
+  }
+
+  if (projectCategoryMultiSelect.selectedIds.length === 1) {
+    value.textContent = categoryMap.get(projectCategoryMultiSelect.selectedIds[0]) || '已选 1 个分类';
+  } else {
+    value.textContent = `已选 ${projectCategoryMultiSelect.selectedIds.length} 个分类`;
+  }
+
+  chips.innerHTML = projectCategoryMultiSelect.selectedIds.map(id => `
+    <span class="project-category-chip">
+      ${escapeHtml(categoryMap.get(id) || id)}
+      <button type="button" class="project-category-chip-remove" data-remove-id="${escapeHtml(id)}" aria-label="移除分类">×</button>
+    </span>
+  `).join('');
+}
+
+/**
+ * 加载分类选项（项目弹框）
  */
 async function loadCategoryOptions() {
   const categories = await fetchCategoriesFromApi();
-  const select = document.getElementById('projectCategory');
-  select.innerHTML = `
-    <option value="">选择分类</option>
-    ${categories.map(c => `<option value="${c.id}">${c.name}</option>`).join('')}
-  `;
+  projectCategoryMultiSelect.categories = categories;
+  setProjectCategorySelection(projectCategoryMultiSelect.selectedIds);
 }
 
 // ===== 批量导入 =====

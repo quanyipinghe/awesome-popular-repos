@@ -9,6 +9,50 @@
 import { verifyAuth, unauthorizedResponse, jsonResponse } from '../_middleware.js';
 
 /**
+ * 统一解析分类字段（兼容字符串、JSON 字符串、数组）
+ * @param {string|string[]|null|undefined} value
+ * @returns {string[]}
+ */
+function normalizeCategoryIds(value) {
+  if (Array.isArray(value)) {
+    return [...new Set(value.map(v => String(v).trim()).filter(Boolean))];
+  }
+
+  if (typeof value === 'string') {
+    const trimmed = value.trim();
+    if (!trimmed) return [];
+
+    if (trimmed.startsWith('[') && trimmed.endsWith(']')) {
+      try {
+        const parsed = JSON.parse(trimmed);
+        return normalizeCategoryIds(parsed);
+      } catch {
+        return [];
+      }
+    }
+
+    return [trimmed];
+  }
+
+  return [];
+}
+
+/**
+ * 安全解析 JSON 数组
+ * @param {string|null|undefined} value
+ * @returns {Array}
+ */
+function parseJsonArray(value) {
+  if (!value) return [];
+  try {
+    const parsed = JSON.parse(value);
+    return Array.isArray(parsed) ? parsed : [];
+  } catch {
+    return [];
+  }
+}
+
+/**
  * GET - 获取所有项目
  */
 export async function onRequestGet(context) {
@@ -19,10 +63,10 @@ export async function onRequestGet(context) {
       'SELECT * FROM projects ORDER BY stars DESC'
     ).all();
 
-    // 解析 tags JSON 字符串
     const projects = results.map(project => ({
       ...project,
-      tags: project.tags ? JSON.parse(project.tags) : [],
+      categories: normalizeCategoryIds(project.category),
+      tags: parseJsonArray(project.tags),
     }));
 
     return jsonResponse({ projects });
@@ -45,6 +89,8 @@ export async function onRequestPost(context) {
 
   try {
     const project = await request.json();
+    const categoryIds = normalizeCategoryIds(project.categories ?? project.category);
+    const tags = Array.isArray(project.tags) ? project.tags : [];
 
     // 生成唯一 ID
     const id = project.id || Date.now().toString();
@@ -61,8 +107,8 @@ export async function onRequestPost(context) {
       project.github_url || '',
       project.stars || 0,
       project.language || '',
-      project.category || '',
-      JSON.stringify(project.tags || []),
+      JSON.stringify(categoryIds),
+      JSON.stringify(tags),
       project.created_at || now,
       now
     ).run();
@@ -70,7 +116,7 @@ export async function onRequestPost(context) {
     return jsonResponse({
       success: true,
       message: '项目添加成功',
-      project: { ...project, id }
+      project: { ...project, id, category: categoryIds, categories: categoryIds, tags }
     });
   } catch (error) {
     console.error('添加项目失败:', error);
@@ -91,6 +137,8 @@ export async function onRequestPut(context) {
 
   try {
     const { id, ...updates } = await request.json();
+    const categoryIds = normalizeCategoryIds(updates.categories ?? updates.category);
+    const tags = Array.isArray(updates.tags) ? updates.tags : [];
 
     if (!id) {
       return jsonResponse({ error: '缺少项目 ID' }, 400);
@@ -110,15 +158,16 @@ export async function onRequestPut(context) {
       updates.github_url || '',
       updates.stars || 0,
       updates.language || '',
-      updates.category || '',
-      JSON.stringify(updates.tags || []),
+      JSON.stringify(categoryIds),
+      JSON.stringify(tags),
       now,
       id
     ).run();
 
     return jsonResponse({
       success: true,
-      message: '项目更新成功'
+      message: '项目更新成功',
+      project: { id, ...updates, category: categoryIds, categories: categoryIds, tags }
     });
   } catch (error) {
     console.error('更新项目失败:', error);

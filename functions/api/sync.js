@@ -7,6 +7,35 @@
 import { verifyAuth, unauthorizedResponse, jsonResponse } from '../_middleware.js';
 
 /**
+ * 统一解析分类字段（兼容字符串、JSON 字符串、数组）
+ * @param {string|string[]|null|undefined} value
+ * @returns {string[]}
+ */
+function normalizeCategoryIds(value) {
+  if (Array.isArray(value)) {
+    return [...new Set(value.map(v => String(v).trim()).filter(Boolean))];
+  }
+
+  if (typeof value === 'string') {
+    const trimmed = value.trim();
+    if (!trimmed) return [];
+
+    if (trimmed.startsWith('[') && trimmed.endsWith(']')) {
+      try {
+        const parsed = JSON.parse(trimmed);
+        return normalizeCategoryIds(parsed);
+      } catch {
+        return [];
+      }
+    }
+
+    return [trimmed];
+  }
+
+  return [];
+}
+
+/**
  * POST - 批量同步数据
  */
 export async function onRequestPost(context) {
@@ -45,6 +74,8 @@ export async function onRequestPost(context) {
     if (projects && Array.isArray(projects)) {
       for (const project of projects) {
         try {
+          const categoryIds = normalizeCategoryIds(project.categories ?? project.category);
+
           await env.DB.prepare(`
             INSERT OR REPLACE INTO projects 
             (id, name, owner, description, github_url, stars, language, category, tags, created_at, updated_at)
@@ -57,7 +88,7 @@ export async function onRequestPost(context) {
             project.github_url || '',
             project.stars || 0,
             project.language || '',
-            project.category || '',
+            JSON.stringify(categoryIds),
             JSON.stringify(project.tags || []),
             project.created_at || new Date().toISOString().split('T')[0],
             project.updated_at || new Date().toISOString().split('T')[0]

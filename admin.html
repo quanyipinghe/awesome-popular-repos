@@ -302,9 +302,18 @@
           <div class="form-row">
             <div class="form-group">
               <label class="form-label">分类</label>
-              <select class="form-input" id="projectCategory">
-                <!-- 由 JS 动态生成 -->
-              </select>
+              <div class="custom-dropdown project-category-dropdown" id="projectCategorySelect">
+                <button type="button" class="custom-dropdown-trigger" id="projectCategoryTrigger">
+                  <span id="projectCategoryValue">选择分类（可多选）</span>
+                  <svg class="custom-dropdown-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <polyline points="6 9 12 15 18 9"></polyline>
+                  </svg>
+                </button>
+                <div class="custom-dropdown-menu" id="projectCategoryMenu">
+                  <!-- 由 JS 动态生成 -->
+                </div>
+              </div>
+              <div class="project-category-chips" id="projectCategoryChips"></div>
             </div>
             <div class="form-group">
               <label class="form-label">标签 (逗号分隔)</label>

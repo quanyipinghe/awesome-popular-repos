@@ -613,6 +613,107 @@ select.form-input option:disabled {
 /* 默认颜色 */
 .category-dot:not([data-category]) { background: var(--text-muted); }
 
+/* ===== 项目分类多选 ===== */
+.project-category-dropdown .custom-dropdown-menu {
+  max-height: 280px;
+}
+
+.project-category-dropdown .custom-dropdown-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  min-height: 40px;
+  box-sizing: border-box;
+  margin-bottom: 4px;
+  border: none;
+  background: transparent;
+  text-align: left;
+  line-height: 1.2;
+  font: inherit;
+}
+
+.project-category-dropdown .custom-dropdown-item:last-child {
+  margin-bottom: 0;
+}
+
+.project-category-dropdown .custom-dropdown-item.selected {
+  background: linear-gradient(135deg, rgba(224, 64, 251, 0.14), rgba(0, 229, 255, 0.08));
+  border: 1px solid rgba(224, 64, 251, 0.25);
+}
+
+.project-category-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--spacing-sm);
+  margin-top: var(--spacing-sm);
+  min-height: 28px;
+}
+
+.project-category-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 10px;
+  background: rgba(224, 64, 251, 0.12);
+  border: 1px solid rgba(224, 64, 251, 0.28);
+  border-radius: 999px;
+  color: var(--text-primary);
+  font-size: var(--font-size-xs);
+}
+
+.project-category-chip-remove {
+  width: 16px;
+  height: 16px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  background: transparent;
+  color: var(--text-muted);
+  cursor: pointer;
+  border-radius: 50%;
+  padding: 0;
+  line-height: 1;
+  transition: all var(--transition-fast);
+}
+
+.project-category-chip-remove:hover {
+  background: rgba(255, 255, 255, 0.12);
+  color: var(--text-primary);
+}
+
+.project-category-empty {
+  font-size: var(--font-size-xs);
+  color: var(--text-muted);
+}
+
+.table-category-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.table-category-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-size: var(--font-size-xs);
+  color: var(--text-secondary);
+  background: rgba(0, 229, 255, 0.1);
+  border: 1px solid rgba(0, 229, 255, 0.25);
+}
+
+.project-category-dropdown .custom-dropdown-item-check {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  font-size: 12px;
+}
+
 /* ===== 登录页面 ===== */
 .login-container {
   min-height: 100vh;

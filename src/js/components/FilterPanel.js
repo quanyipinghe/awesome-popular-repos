@@ -24,6 +24,37 @@ const ARROW_DOWN = `<svg class="select-arrow" viewBox="0 0 24 24" fill="none" st
 const CHECK_ICON = `<svg class="option-check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><polyline points="20 6 9 17 4 12"></polyline></svg>`;
 
 /**
+ * 统一解析项目分类
+ * @param {Object} project
+ * @returns {string[]}
+ */
+function getProjectCategoryIds(project) {
+  const value = Array.isArray(project?.categories) ? project.categories : project?.category;
+
+  if (Array.isArray(value)) {
+    return value.map(v => String(v).trim()).filter(Boolean);
+  }
+
+  if (typeof value === 'string') {
+    const trimmed = value.trim();
+    if (!trimmed) return [];
+
+    if (trimmed.startsWith('[') && trimmed.endsWith(']')) {
+      try {
+        const parsed = JSON.parse(trimmed);
+        return Array.isArray(parsed) ? parsed.map(v => String(v).trim()).filter(Boolean) : [];
+      } catch {
+        return [];
+      }
+    }
+
+    return [trimmed];
+  }
+
+  return [];
+}
+
+/**
  * 创建筛选面板
  * @param {Object} options - 配置选项
  * @returns {HTMLElement} 筛选面板元素
@@ -212,7 +243,7 @@ export function applyFilters(projects, filters, favorites = []) {
 
   // 分类筛选
   if (filters.category && filters.category !== 'all') {
-    result = result.filter(p => p.category === filters.category);
+    result = result.filter(p => getProjectCategoryIds(p).includes(filters.category));
   }
 
   // 收藏筛选
